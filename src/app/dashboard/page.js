@@ -16,6 +16,7 @@ export default function DashboardPage() {
     pendingLeads: 0,
     followUpsToday: 0,
     conversionRate: 0,
+    totalCalls: 0,
   });
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -104,12 +105,22 @@ export default function DashboardPage() {
         <Navbar />
         <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
           <div className="px-4 py-6 sm:px-0">
-            <h1 className="text-2xl font-bold text-gray-900 mb-6">
-              {user?.role === 'admin' ? 'Admin Dashboard' : 'My Dashboard'}
-            </h1>
+            <div className="flex justify-between items-center mb-6">
+              <h1 className="text-2xl font-bold text-gray-900">
+                {user?.role === 'admin' ? 'Admin Dashboard' : 'My Dashboard'}
+              </h1>
+              {user?.role !== 'admin' && (
+                <Button
+                  onClick={() => router.push('/request-leads')}
+                  className="bg-indigo-600 hover:bg-indigo-700"
+                >
+                  📝 Request New Leads
+                </Button>
+              )}
+            </div>
             
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-center">
@@ -120,6 +131,22 @@ export default function DashboardPage() {
                     <div className="ml-4">
                       <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
                         <span className="text-white text-sm">📊</span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-600">Total Calls</p>
+                      <p className="text-2xl font-bold text-purple-600">{stats.totalCalls}</p>
+                    </div>
+                    <div className="ml-4">
+                      <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
+                        <span className="text-white text-sm">📞</span>
                       </div>
                     </div>
                   </div>

@@ -16,11 +16,11 @@ export async function POST(request) {
 
     const formData = await request.formData();
     const csvFile = formData.get('csvFile');
-    const assignedTo = formData.get('assignedTo');
+    const assignedTo = formData.get('assignedTo') || null; // Can be null for unassigned
 
-    if (!csvFile || !assignedTo) {
+    if (!csvFile) {
       return NextResponse.json(
-        { error: 'CSV file and assigned user are required' },
+        { error: 'CSV file is required' },
         { status: 400 }
       );
     }

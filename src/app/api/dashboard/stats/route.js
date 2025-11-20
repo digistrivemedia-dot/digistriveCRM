@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/mongodb';
 import Lead from '@/models/Lead';
 import Communication from '@/models/Communication';
+import Interaction from '@/models/Interaction';
 import { authenticateUser } from '@/lib/auth';
 import mongoose from 'mongoose';
 
@@ -46,12 +47,27 @@ export async function GET(request) {
     // Calculate conversion rate
     const conversionRate = totalLeads > 0 ? ((convertedLeads / totalLeads) * 100).toFixed(1) : 0;
 
+    // Calculate total calls made by this user
+    let totalCalls = 0;
+    if (user.role !== 'admin') {
+      totalCalls = await Interaction.countDocuments({
+        user: new mongoose.Types.ObjectId(user.userId),
+        type: 'Call',
+      });
+    } else {
+      // For admin, count all calls
+      totalCalls = await Interaction.countDocuments({
+        type: 'Call',
+      });
+    }
+
     const stats = {
       totalLeads,
       convertedLeads,
       pendingLeads,
       followUpsToday,
       conversionRate: parseFloat(conversionRate),
+      totalCalls,
     };
 
     return NextResponse.json({ stats });

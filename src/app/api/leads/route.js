@@ -26,12 +26,19 @@ export async function GET(request) {
 
     const skip = (page - 1) * limit;
     let query = {};
-    
+
     if (user.role !== 'admin') {
+      // Callers only see their assigned leads
       query.assignedTo = user.userId;
     } else if (assignedTo && assignedTo !== 'all') {
-      query.assignedTo = assignedTo;
+      // Admin filtering by specific user or unassigned
+      if (assignedTo === 'unassigned') {
+        query.assignedTo = null;
+      } else {
+        query.assignedTo = assignedTo;
+      }
     }
+    // If admin and assignedTo is 'all' or not specified, show all leads
 
     if (status && status !== 'all') {
       query.status = status;
@@ -93,11 +100,14 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Required fields missing' }, { status: 400 });
     }
 
+    // Determine who the lead should be assigned to
     let finalAssignedTo = assignedTo;
     if (user.role !== 'admin') {
+      // Non-admin users (callers) always assign leads to themselves
       finalAssignedTo = user.userId;
     } else if (!assignedTo) {
-      finalAssignedTo = user.userId;
+      // Admin with no assignedTo specified = leave unassigned (null)
+      finalAssignedTo = null;
     }
 
     const lead = await Lead.create({

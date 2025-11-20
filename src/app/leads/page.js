@@ -21,6 +21,7 @@ export default function LeadsPage() {
   const [selectedLeads, setSelectedLeads] = useState(new Set());
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
   const [showBulkStatusModal, setShowBulkStatusModal] = useState(false);
+  const [showBulkAssignModal, setShowBulkAssignModal] = useState(false);
   const [filters, setFilters] = useState({
     status: 'all',
     search: '',
@@ -235,6 +236,15 @@ export default function LeadsPage() {
                       </button>
                     </div>
                     <div className="flex space-x-2">
+                      {user?.role === 'admin' && (
+                        <Button
+                          variant="outline"
+                          onClick={() => setShowBulkAssignModal(true)}
+                          className="text-green-600 border-green-300 hover:bg-green-50"
+                        >
+                          Assign to Caller
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         onClick={() => setShowBulkStatusModal(true)}
@@ -522,6 +532,18 @@ export default function LeadsPage() {
           selectedLeads={selectedLeads}
           onSuccess={() => {
             setShowBulkStatusModal(false);
+            clearSelection();
+            fetchLeads();
+          }}
+        />
+
+        {/* Bulk Assign Modal */}
+        <BulkAssignModal
+          isOpen={showBulkAssignModal}
+          onClose={() => setShowBulkAssignModal(false)}
+          selectedLeads={selectedLeads}
+          onSuccess={() => {
+            setShowBulkAssignModal(false);
             clearSelection();
             fetchLeads();
           }}
@@ -1577,6 +1599,144 @@ function LogCallModal({ isOpen, onClose, lead, onSuccess }) {
           </Button>
           <Button type="submit" disabled={loading || !callOutcome || !status}>
             {loading ? 'Saving...' : 'Save Call Log'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+// Bulk Assign Modal Component
+function BulkAssignModal({ isOpen, onClose, selectedLeads, onSuccess }) {
+  const [assignedTo, setAssignedTo] = useState('');
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [warning, setWarning] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchUsers();
+    }
+  }, [isOpen]);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch('/api/admin/users', {
+        credentials: 'include',
+      });
+      if (response.ok) {
+        const data = await response.json();
+        // Filter only active users
+        const activeUsers = data.users.filter(u => u.isActive);
+        setUsers(activeUsers);
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  };
+
+  const handleAssign = async (e) => {
+    e.preventDefault();
+    if (!assignedTo) return;
+
+    setLoading(true);
+    setError('');
+    setWarning('');
+
+    try {
+      const leadIds = Array.from(selectedLeads);
+      const response = await fetch('/api/leads/bulk-assign', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ leadIds, assignedTo }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        if (data.skipped > 0) {
+          setWarning(`${data.assigned} leads assigned. ${data.skipped} leads were skipped (already assigned).`);
+        }
+        setTimeout(() => {
+          onSuccess();
+          setAssignedTo('');
+          setWarning('');
+        }, 2000);
+      } else {
+        setError(data.error || 'Failed to assign leads');
+      }
+    } catch (error) {
+      setError('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Assign Leads to Caller" size="lg">
+      <form onSubmit={handleAssign} className="space-y-4 text-black">
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+            {error}
+          </div>
+        )}
+
+        {warning && (
+          <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
+            {warning}
+          </div>
+        )}
+
+        <div className="text-sm text-gray-600 mb-4">
+          Assigning <strong>{selectedLeads.size}</strong> selected lead{selectedLeads.size !== 1 ? 's' : ''}.
+        </div>
+
+        <div className="bg-blue-50 p-4 rounded-md border border-blue-200">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <span className="text-blue-600">ℹ️</span>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-blue-700">
+                <strong>Duplicate Prevention:</strong> Only unassigned leads will be assigned. Leads already assigned to other callers will be skipped automatically.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Assign to Caller *
+          </label>
+          <select
+            value={assignedTo}
+            onChange={(e) => setAssignedTo(e.target.value)}
+            required
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500"
+          >
+            <option value="">Select a caller...</option>
+            {users.map((user) => (
+              <option key={user._id} value={user._id}>
+                {user.name} ({user.email}) - {user.role === 'admin' ? 'Admin' : 'Caller'}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex justify-end space-x-3 pt-4">
+          <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            disabled={loading || !assignedTo}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            {loading ? 'Assigning...' : 'Assign Leads'}
           </Button>
         </div>
       </form>
