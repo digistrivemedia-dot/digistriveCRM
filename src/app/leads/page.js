@@ -16,6 +16,7 @@ export default function LeadsPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showNoteModal, setShowNoteModal] = useState(false);
+  const [showLogCallModal, setShowLogCallModal] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
   const [selectedLeads, setSelectedLeads] = useState(new Set());
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
@@ -319,16 +320,18 @@ export default function LeadsPage() {
                               />
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                              <div>
-                                <div className="text-sm font-medium text-gray-900 hover:text-indigo-600 transition-colors">
-                                  {lead.name}
-                                </div>
-                                {lead.companyName && (
-                                  <div className="text-sm text-gray-500">
-                                    {lead.companyName}
+                              <StatusHistoryTooltip leadId={lead._id}>
+                                <div>
+                                  <div className="text-sm font-medium text-gray-900 hover:text-indigo-600 transition-colors cursor-help">
+                                    {lead.name}
                                   </div>
-                                )}
-                              </div>
+                                  {lead.companyName && (
+                                    <div className="text-sm text-gray-500">
+                                      {lead.companyName}
+                                    </div>
+                                  )}
+                                </div>
+                              </StatusHistoryTooltip>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div>
@@ -339,9 +342,11 @@ export default function LeadsPage() {
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(lead.status)}`}>
-                                {lead.status}
-                              </span>
+                              <StatusHistoryTooltip leadId={lead._id}>
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium cursor-help ${getStatusColor(lead.status)}`}>
+                                  {lead.status}
+                                </span>
+                              </StatusHistoryTooltip>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                               ${lead.leadValue?.toLocaleString() || '0'}
@@ -351,13 +356,19 @@ export default function LeadsPage() {
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                               <div className="flex space-x-2 flex-wrap">
-                                <a
-                                  href={`tel:${lead.phone}`}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    // Open phone dialer
+                                    window.location.href = `tel:${lead.phone}`;
+                                    // Show log call modal
+                                    setSelectedLead(lead);
+                                    setShowLogCallModal(true);
+                                  }}
                                   className="text-green-600 hover:text-green-900 px-2 py-1 rounded bg-green-50 hover:bg-green-100"
-                                  onClick={(e) => e.stopPropagation()}
                                 >
                                   📞 Call
-                                </a>
+                                </button>
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -477,6 +488,17 @@ export default function LeadsPage() {
           lead={selectedLead}
           onSuccess={() => {
             setShowNoteModal(false);
+            fetchLeads();
+          }}
+        />
+
+        {/* Log Call Modal */}
+        <LogCallModal
+          isOpen={showLogCallModal}
+          onClose={() => setShowLogCallModal(false)}
+          lead={selectedLead}
+          onSuccess={() => {
+            setShowLogCallModal(false);
             fetchLeads();
           }}
         />
@@ -799,6 +821,30 @@ function StatusUpdateModal({ isOpen, onClose, lead, onSuccess }) {
     setError('');
 
     try {
+      // Create interaction record for status change
+      const interactionData = {
+        lead: lead._id,
+        type: 'Note',
+        outcome: 'Status Changed',
+        notes: notes.trim() || `Status changed from ${lead.status} to ${status}`,
+        previousStatus: lead.status,
+        newStatus: status,
+      };
+
+      const interactionResponse = await fetch('/api/interactions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(interactionData),
+      });
+
+      if (!interactionResponse.ok) {
+        throw new Error('Failed to create interaction record');
+      }
+
+      // Update lead status
       const response = await fetch(`/api/leads/${lead._id}`, {
         method: 'PUT',
         headers: {
@@ -807,7 +853,6 @@ function StatusUpdateModal({ isOpen, onClose, lead, onSuccess }) {
         credentials: 'include',
         body: JSON.stringify({
           status,
-          notes: notes.trim() || undefined,
         }),
       });
 
@@ -818,7 +863,7 @@ function StatusUpdateModal({ isOpen, onClose, lead, onSuccess }) {
         setError(data.error || 'Failed to update status');
       }
     } catch (error) {
-      setError('Network error. Please try again.');
+      setError(error.message || 'Network error. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -1267,5 +1312,386 @@ function BulkStatusModal({ isOpen, onClose, selectedLeads, onSuccess }) {
         </div>
       </form>
     </Modal>
+  );
+}
+
+// Log Call Modal Component
+function LogCallModal({ isOpen, onClose, lead, onSuccess }) {
+  const [callOutcome, setCallOutcome] = useState('');
+  const [status, setStatus] = useState('');
+  const [notes, setNotes] = useState('');
+  const [duration, setDuration] = useState('');
+  const [followUpRequired, setFollowUpRequired] = useState(false);
+  const [followUpDate, setFollowUpDate] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (lead) {
+      setStatus(lead.status);
+      setCallOutcome('');
+      setNotes('');
+      setDuration('');
+      setFollowUpRequired(false);
+      setFollowUpDate('');
+      setError('');
+    }
+  }, [lead]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!lead || !callOutcome || !status) return;
+
+    setLoading(true);
+    setError('');
+
+    try {
+      // Create communication record
+      const communicationData = {
+        leadId: lead._id,
+        type: 'call',
+        outcome: callOutcome,
+        notes: notes.trim(),
+        duration: duration ? parseInt(duration) : undefined,
+        followUpRequired,
+        followUpDate: followUpRequired && followUpDate ? new Date(followUpDate) : undefined,
+      };
+
+      const commResponse = await fetch('/api/communications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(communicationData),
+      });
+
+      if (!commResponse.ok) {
+        throw new Error('Failed to log call');
+      }
+
+      // Create interaction record if status changed
+      if (status !== lead.status) {
+        const interactionData = {
+          lead: lead._id,
+          type: 'Call',
+          outcome: callOutcome,
+          notes: `Call: ${notes.trim()}`,
+          previousStatus: lead.status,
+          newStatus: status,
+        };
+
+        const interactionResponse = await fetch('/api/interactions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(interactionData),
+        });
+
+        if (!interactionResponse.ok) {
+          throw new Error('Failed to create interaction record');
+        }
+      }
+
+      // Update lead status
+      const leadUpdateData = {
+        status,
+        lastContactedAt: new Date(),
+      };
+
+      if (followUpRequired && followUpDate) {
+        leadUpdateData.followUpDate = new Date(followUpDate);
+      }
+
+      const leadResponse = await fetch(`/api/leads/${lead._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(leadUpdateData),
+      });
+
+      if (!leadResponse.ok) {
+        throw new Error('Failed to update lead');
+      }
+
+      onSuccess();
+    } catch (error) {
+      setError(error.message || 'Failed to log call. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const callOutcomeOptions = [
+    { value: '', label: 'Select outcome...', disabled: true },
+    { value: 'interested', label: 'Interested' },
+    { value: 'not_interested', label: 'Not Interested' },
+    { value: 'no_answer', label: 'No Answer' },
+    { value: 'busy', label: 'Busy' },
+    { value: 'voicemail', label: 'Voicemail' },
+    { value: 'scheduled_callback', label: 'Call Back Later' },
+    { value: 'successful', label: 'Successful Discussion' },
+    { value: 'converted', label: 'Converted' },
+  ];
+
+  const statusOptions = [
+    { value: 'New', label: 'New' },
+    { value: 'Contacted', label: 'Contacted' },
+    { value: 'In Progress', label: 'In Progress' },
+    { value: 'Follow-up', label: 'Follow-up' },
+    { value: 'Converted', label: 'Converted' },
+    { value: 'Lost', label: 'Lost' },
+  ];
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title={`Log Call: ${lead?.name}`} size="lg">
+      <form onSubmit={handleSubmit} className="space-y-4 text-black">
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+            {error}
+          </div>
+        )}
+
+        <div className="bg-blue-50 p-3 rounded-md">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <span className="text-blue-600">ℹ️</span>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-blue-700">
+                <strong>Calling: {lead?.phone}</strong> - Log the call outcome and update lead status
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Call Outcome *
+            </label>
+            <select
+              value={callOutcome}
+              onChange={(e) => setCallOutcome(e.target.value)}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              {callOutcomeOptions.map((option) => (
+                <option key={option.value} value={option.value} disabled={option.disabled}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Lead Status *
+            </label>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              {statusOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Call Duration (minutes)
+          </label>
+          <input
+            type="number"
+            min="0"
+            step="1"
+            value={duration}
+            onChange={(e) => setDuration(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            placeholder="How long was the call?"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Call Notes *
+          </label>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={4}
+            required
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            placeholder="What was discussed? Key points, concerns, next steps..."
+          />
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            id="followUpRequired"
+            checked={followUpRequired}
+            onChange={(e) => setFollowUpRequired(e.target.checked)}
+            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+          />
+          <label htmlFor="followUpRequired" className="text-sm font-medium text-gray-700">
+            Follow-up required
+          </label>
+        </div>
+
+        {followUpRequired && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Follow-up Date & Time *
+            </label>
+            <input
+              type="datetime-local"
+              value={followUpDate}
+              onChange={(e) => setFollowUpDate(e.target.value)}
+              required={followUpRequired}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              When should you call this lead again?
+            </p>
+          </div>
+        )}
+
+        <div className="bg-gray-50 p-3 rounded-md">
+          <h4 className="font-medium text-gray-900 mb-2">Lead Information:</h4>
+          <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
+            <p><strong>Company:</strong> {lead?.companyName || 'N/A'}</p>
+            <p><strong>Email:</strong> {lead?.email || 'N/A'}</p>
+            <p><strong>Value:</strong> ${lead?.leadValue?.toLocaleString() || '0'}</p>
+            <p><strong>Current Status:</strong> {lead?.status}</p>
+          </div>
+        </div>
+
+        <div className="flex justify-end space-x-3 pt-4">
+          <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={loading || !callOutcome || !status}>
+            {loading ? 'Saving...' : 'Save Call Log'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+// Status History Tooltip Component
+function StatusHistoryTooltip({ leadId, children }) {
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchHistory = async () => {
+    if (!leadId || history.length > 0) return;
+
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/interactions?leadId=${leadId}`, {
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Filter for status changes
+        const statusChanges = data.interactions.filter(
+          interaction => interaction.previousStatus || interaction.newStatus
+        );
+        setHistory(statusChanges);
+      }
+    } catch (error) {
+      console.error('Failed to fetch history:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div
+      className="relative inline-block"
+      onMouseEnter={() => {
+        setShowTooltip(true);
+        fetchHistory();
+      }}
+      onMouseLeave={() => setShowTooltip(false)}
+    >
+      {children}
+
+      {showTooltip && (
+        <div className="absolute z-50 left-0 top-full mt-2 w-96 bg-white border border-gray-200 rounded-lg shadow-xl p-4">
+          <div className="max-h-80 overflow-y-auto">
+            <h4 className="font-semibold text-gray-900 mb-3 sticky top-0 bg-white">
+              Status Change History
+            </h4>
+
+            {loading ? (
+              <div className="text-center py-4 text-gray-500">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600 mx-auto"></div>
+              </div>
+            ) : history.length === 0 ? (
+              <p className="text-sm text-gray-500 italic">No status changes yet</p>
+            ) : (
+              <div className="space-y-3">
+                {history.map((item, index) => (
+                  <div key={item._id || index} className="border-l-2 border-indigo-200 pl-3 pb-2">
+                    <div className="flex items-start justify-between mb-1">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs font-medium text-gray-500">
+                          {new Date(item.createdAt).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                          })}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          {new Date(item.createdAt).toLocaleTimeString('en-US', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2 mb-1">
+                      {item.previousStatus && (
+                        <>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
+                            {item.previousStatus}
+                          </span>
+                          <span className="text-xs text-gray-400">→</span>
+                        </>
+                      )}
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-medium">
+                        {item.newStatus}
+                      </span>
+                    </div>
+
+                    {item.notes && (
+                      <p className="text-sm text-gray-600 mt-1 italic">
+                        &ldquo;{item.notes}&rdquo;
+                      </p>
+                    )}
+
+                    {item.user?.name && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        by {item.user.name}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

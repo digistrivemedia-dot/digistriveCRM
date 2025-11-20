@@ -17,6 +17,7 @@ export default function LeadDetailPage() {
   const [leadsLoading, setLeadsLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [showInteractionModal, setShowInteractionModal] = useState(false);
+  const [showStatusModal, setShowStatusModal] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const router = useRouter();
   const params = useParams();
@@ -104,8 +105,8 @@ export default function LeadDetailPage() {
   useEffect(() => {
     const handleKeyPress = (e) => {
       // Only handle if no modal is open and not in an input field
-      if (editing || showInteractionModal || 
-          e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || 
+      if (editing || showInteractionModal || showStatusModal ||
+          e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' ||
           e.target.tagName === 'SELECT') {
         return;
       }
@@ -121,7 +122,7 @@ export default function LeadDetailPage() {
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [editing, showInteractionModal, handlePreviousLead, handleNextLead]);
+  }, [editing, showInteractionModal, showStatusModal, handlePreviousLead, handleNextLead]);
 
   const handleUpdateLead = async (updatedData) => {
     try {
@@ -398,11 +399,19 @@ export default function LeadDetailPage() {
                             <div><strong>Source:</strong> {lead.source?.name}</div>
                             <div><strong>Lead Value:</strong> ${lead.leadValue?.toLocaleString()}</div>
                             <div><strong>Assigned To:</strong> {lead.assignedTo?.name}</div>
-                            <div>
-                              <strong>Status:</strong>{' '}
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ml-1 ${getStatusColor(lead.status)}`}>
-                                {lead.status}
-                              </span>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <strong>Status:</strong>{' '}
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ml-1 ${getStatusColor(lead.status)}`}>
+                                  {lead.status}
+                                </span>
+                              </div>
+                              <button
+                                onClick={() => setShowStatusModal(true)}
+                                className="text-xs text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 px-2 py-1 rounded transition-colors"
+                              >
+                                Update Status
+                              </button>
                             </div>
                             <div>
                               <strong>Priority:</strong>{' '}
@@ -410,6 +419,21 @@ export default function LeadDetailPage() {
                                 {lead.priority}
                               </span>
                             </div>
+                            {lead.followUpDate && (
+                              <div className="md:col-span-2 bg-orange-50 p-3 rounded-md border border-orange-200">
+                                <strong className="text-orange-800">📅 Follow-up Scheduled:</strong>{' '}
+                                <span className="text-orange-900 font-medium">
+                                  {new Date(lead.followUpDate).toLocaleString('en-US', {
+                                    weekday: 'short',
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </div>
                         
@@ -572,6 +596,16 @@ export default function LeadDetailPage() {
           }}
         />
 
+        {/* Status Update Modal */}
+        <StatusUpdateModal
+          isOpen={showStatusModal}
+          onClose={() => setShowStatusModal(false)}
+          lead={lead}
+          onSuccess={() => {
+            setShowStatusModal(false);
+            fetchLead();
+          }}
+        />
 
         </div>
       </div>
@@ -927,6 +961,251 @@ function AddInteractionModal({ isOpen, onClose, leadId, onSuccess, currentLead }
           </Button>
           <Button type="submit" disabled={loading}>
             {loading ? 'Adding...' : 'Add Interaction'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+// Status Update Modal Component
+function StatusUpdateModal({ isOpen, onClose, lead, onSuccess }) {
+  const [status, setStatus] = useState('');
+  const [notes, setNotes] = useState('');
+  const [followUpDate, setFollowUpDate] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (lead) {
+      setStatus(lead.status);
+      setNotes('');
+      setError('');
+      // Set default follow-up date to tomorrow at 10 AM if switching to Follow-up
+      if (lead.followUpDate) {
+        const date = new Date(lead.followUpDate);
+        setFollowUpDate(date.toISOString().slice(0, 16));
+      } else {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(10, 0, 0, 0);
+        setFollowUpDate(tomorrow.toISOString().slice(0, 16));
+      }
+    }
+  }, [lead]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!lead) return;
+
+    // Validate follow-up date if status is Follow-up
+    if (status === 'Follow-up' && followUpDate) {
+      const selectedDate = new Date(followUpDate);
+      const now = new Date();
+      if (selectedDate < now) {
+        setError('Follow-up date cannot be in the past. Please select a future date and time.');
+        return;
+      }
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      // Create interaction record for status change
+      let interactionNotes = notes.trim();
+      if (!interactionNotes) {
+        interactionNotes = `Status changed from ${lead.status} to ${status}`;
+        if (status === 'Follow-up' && followUpDate) {
+          const followUpDateObj = new Date(followUpDate);
+          interactionNotes += `. Follow-up scheduled for ${followUpDateObj.toLocaleString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })}`;
+        }
+      }
+
+      // Determine appropriate outcome based on new status
+      let interactionOutcome;
+      if (status === 'Converted') {
+        interactionOutcome = 'Converted';
+      } else if (status === 'Follow-up') {
+        interactionOutcome = 'Follow-up Scheduled';
+      } else if (status === 'In Progress') {
+        interactionOutcome = 'Interested';
+      } else if (status === 'Lost') {
+        interactionOutcome = 'Not Interested';
+      }
+      // Otherwise, don't set outcome (it's optional)
+
+      const interactionData = {
+        lead: lead._id,
+        type: 'Note',
+        notes: interactionNotes,
+        previousStatus: lead.status,
+        newStatus: status,
+      };
+
+      // Only add outcome if we have a valid one
+      if (interactionOutcome) {
+        interactionData.outcome = interactionOutcome;
+      }
+
+      const interactionResponse = await fetch('/api/interactions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(interactionData),
+      });
+
+      if (!interactionResponse.ok) {
+        throw new Error('Failed to create interaction record');
+      }
+
+      // Update lead status
+      const updateData = {
+        status,
+      };
+
+      // Add follow-up date if status is Follow-up
+      if (status === 'Follow-up' && followUpDate) {
+        updateData.followUpDate = new Date(followUpDate);
+      }
+
+      const response = await fetch(`/api/leads/${lead._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(updateData),
+      });
+
+      if (response.ok) {
+        onSuccess();
+        setNotes('');
+      } else {
+        const data = await response.json();
+        setError(data.error || 'Failed to update status');
+      }
+    } catch (error) {
+      setError(error.message || 'Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const statusOptions = [
+    { value: 'New', label: 'New', color: 'text-blue-600', description: 'Lead has just been created' },
+    { value: 'Contacted', label: 'Contacted', color: 'text-yellow-600', description: 'Initial contact made' },
+    { value: 'In Progress', label: 'In Progress', color: 'text-purple-600', description: 'Actively working on this lead' },
+    { value: 'Follow-up', label: 'Follow-up', color: 'text-orange-600', description: 'Scheduled for follow-up' },
+    { value: 'Converted', label: 'Converted', color: 'text-green-600', description: 'Successfully converted to customer' },
+    { value: 'Lost', label: 'Lost', color: 'text-red-600', description: 'Lead is no longer interested' },
+  ];
+
+  if (!lead) return null;
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title={`Update Status: ${lead?.name}`} size="lg">
+      <form onSubmit={handleSubmit} className="space-y-4 text-black">
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+            {error}
+          </div>
+        )}
+
+        <div className="bg-blue-50 p-3 rounded-md border border-blue-200">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <span className="text-blue-600 text-lg">ℹ️</span>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-blue-700">
+                Current Status: <strong className="font-semibold">{lead.status}</strong>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            New Status *
+          </label>
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            required
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+          >
+            {statusOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-gray-500">
+            {statusOptions.find(opt => opt.value === status)?.description}
+          </p>
+        </div>
+
+        {/* Follow-up Date Picker - Only show when status is Follow-up */}
+        {status === 'Follow-up' && (
+          <div className="bg-orange-50 p-4 rounded-md border border-orange-200">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              📅 Follow-up Date & Time *
+            </label>
+            <input
+              type="datetime-local"
+              value={followUpDate}
+              onChange={(e) => setFollowUpDate(e.target.value)}
+              required={status === 'Follow-up'}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+            />
+            <p className="mt-2 text-xs text-orange-700">
+              <strong>Set when you should follow up with this lead.</strong> You&apos;ll be reminded to contact them at this time.
+            </p>
+          </div>
+        )}
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Status Update Notes (Optional)
+          </label>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={4}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            placeholder="Add any notes about this status change (e.g., reason for change, next steps, etc.)"
+          />
+          <p className="mt-1 text-xs text-gray-500">
+            If left empty, a default note will be created automatically
+          </p>
+        </div>
+
+        <div className="bg-gray-50 p-4 rounded-md">
+          <h4 className="font-medium text-gray-900 mb-2">Lead Information:</h4>
+          <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
+            <p><strong>Phone:</strong> {lead?.phone}</p>
+            <p><strong>Email:</strong> {lead?.email || 'N/A'}</p>
+            <p><strong>Company:</strong> {lead?.companyName || 'N/A'}</p>
+            <p><strong>Value:</strong> ${lead?.leadValue?.toLocaleString() || 0}</p>
+          </div>
+        </div>
+
+        <div className="flex justify-end space-x-3 pt-4 border-t">
+          <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={loading}>
+            {loading ? 'Updating...' : 'Update Status'}
           </Button>
         </div>
       </form>
