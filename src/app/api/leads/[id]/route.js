@@ -52,10 +52,10 @@ export async function PUT(request, { params }) {
     }
 
     await connectToDatabase();
-    
+
     const leadId = params.id;
     const body = await request.json();
-    
+
     let query = { _id: leadId };
     if (user.role !== 'admin') {
       query.assignedTo = user.userId;
@@ -66,14 +66,20 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
     }
 
-    const updateData = { ...body };
-    
-    if (user.role !== 'admin') {
-      delete updateData.assignedTo;
-    }
+    let updateData;
 
-    if (updateData.leadValue) {
-      updateData.leadValue = parseFloat(updateData.leadValue);
+    if (user.role !== 'admin') {
+      // Employees can only update status, followUpDate, and lastContactedAt
+      updateData = {};
+      if (body.status) updateData.status = body.status;
+      if (body.followUpDate !== undefined) updateData.followUpDate = body.followUpDate;
+      if (body.lastContactedAt !== undefined) updateData.lastContactedAt = body.lastContactedAt;
+    } else {
+      // Admins can update all fields
+      updateData = { ...body };
+      if (updateData.leadValue) {
+        updateData.leadValue = parseFloat(updateData.leadValue);
+      }
     }
 
     const updatedLead = await Lead.findByIdAndUpdate(

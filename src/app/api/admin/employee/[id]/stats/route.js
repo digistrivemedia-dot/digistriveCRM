@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/mongodb';
 import Lead from '@/models/Lead';
-import Communication from '@/models/Communication';
+import Interaction from '@/models/Interaction';
 import { authenticateUser } from '@/lib/auth';
 
 export async function GET(request, { params }) {
@@ -15,7 +15,7 @@ export async function GET(request, { params }) {
 
     // Get all leads assigned to this employee
     const leads = await Lead.find({ assignedTo: params.id });
-    
+
     // Calculate statistics
     const totalLeads = leads.length;
     const newLeads = leads.filter(lead => lead.status === 'New').length;
@@ -25,10 +25,10 @@ export async function GET(request, { params }) {
     const lostLeads = leads.filter(lead => lead.status === 'Lost').length;
     const followUpLeads = leads.filter(lead => lead.status === 'Follow-up').length;
 
-    // Calculate total calls
-    const totalCalls = await Communication.countDocuments({ 
-      leadId: { $in: leads.map(lead => lead._id) },
-      type: 'call'
+    // Calculate total calls from Interactions
+    const totalCalls = await Interaction.countDocuments({
+      lead: { $in: leads.map(lead => lead._id) },
+      type: 'Call'
     });
 
     // Calculate conversion rate

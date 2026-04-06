@@ -14,7 +14,7 @@ export default function LeadsPage() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [showInteractionModal, setShowInteractionModal] = useState(false);
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [showLogCallModal, setShowLogCallModal] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
@@ -93,11 +93,6 @@ export default function LeadsPage() {
 
   const handlePageChange = (page) => {
     setFilters(prev => ({ ...prev, page }));
-  };
-
-  const handleStatusUpdate = (lead) => {
-    setSelectedLead(lead);
-    setShowStatusModal(true);
   };
 
   const handleAddNote = (lead) => {
@@ -382,11 +377,12 @@ export default function LeadsPage() {
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleStatusUpdate(lead);
+                                    setSelectedLead(lead);
+                                    setShowInteractionModal(true);
                                   }}
                                   className="text-indigo-600 hover:text-indigo-900 px-2 py-1 rounded bg-indigo-50 hover:bg-indigo-100"
                                 >
-                                  Update Status
+                                  📞 Add Interaction
                                 </button>
                                 <button
                                   onClick={(e) => {
@@ -480,13 +476,13 @@ export default function LeadsPage() {
           currentUser={user}
         />
 
-        {/* Status Update Modal */}
-        <StatusUpdateModal
-          isOpen={showStatusModal}
-          onClose={() => setShowStatusModal(false)}
+        {/* Add Interaction Modal */}
+        <AddInteractionModal
+          isOpen={showInteractionModal}
+          onClose={() => setShowInteractionModal(false)}
           lead={selectedLead}
           onSuccess={() => {
-            setShowStatusModal(false);
+            setShowInteractionModal(false);
             fetchLeads();
           }}
         />
@@ -821,132 +817,186 @@ function AddLeadModal({ isOpen, onClose, onSuccess, currentUser }) {
   );
 }
 
-// Status Update Modal Component
-function StatusUpdateModal({ isOpen, onClose, lead, onSuccess }) {
-  const [status, setStatus] = useState('');
-  const [notes, setNotes] = useState('');
+// Add Interaction Modal Component
+function AddInteractionModal({ isOpen, onClose, lead, onSuccess }) {
+  const [formData, setFormData] = useState({
+    type: 'Call',
+    outcome: '',
+    notes: '',
+    duration: '',
+    followUpDate: '',
+    leadStatus: '',
+  });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
   useEffect(() => {
-    if (lead) {
-      setStatus(lead.status);
-      setNotes('');
+    if (isOpen && lead) {
+      setFormData(prev => ({
+        ...prev,
+        leadStatus: lead.status || 'New',
+        followUpDate: new Date().toISOString().slice(0, 16) // Today's date and current time
+      }));
     }
-  }, [lead]);
+  }, [isOpen, lead]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!lead) return;
-
     setLoading(true);
-    setError('');
 
     try {
-      // Create interaction record for status change
-      const interactionData = {
-        lead: lead._id,
-        type: 'Note',
-        outcome: 'Status Changed',
-        notes: notes.trim() || `Status changed from ${lead.status} to ${status}`,
-        previousStatus: lead.status,
-        newStatus: status,
-      };
-
+      // Add interaction
       const interactionResponse = await fetch('/api/interactions', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(interactionData),
-      });
-
-      if (!interactionResponse.ok) {
-        throw new Error('Failed to create interaction record');
-      }
-
-      // Update lead status
-      const response = await fetch(`/api/leads/${lead._id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          status,
+          type: formData.type,
+          outcome: formData.outcome,
+          notes: formData.notes,
+          duration: formData.duration ? parseInt(formData.duration) : null,
+          followUpDate: formData.followUpDate || null,
+          lead: lead._id,
         }),
       });
 
-      if (response.ok) {
-        onSuccess();
-      } else {
-        const data = await response.json();
-        setError(data.error || 'Failed to update status');
+      if (!interactionResponse.ok) {
+        throw new Error('Failed to add interaction');
       }
+
+      // Update lead status if it has changed
+      if (formData.leadStatus !== lead?.status) {
+        const statusResponse = await fetch(`/api/leads/${lead._id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            status: formData.leadStatus,
+          }),
+        });
+
+        if (!statusResponse.ok) {
+          throw new Error('Failed to update lead status');
+        }
+      }
+
+      onSuccess();
+      setFormData({
+        type: 'Call',
+        outcome: '',
+        notes: '',
+        duration: '',
+        followUpDate: new Date().toISOString().slice(0, 16),
+        leadStatus: lead?.status || 'New',
+      });
     } catch (error) {
-      setError(error.message || 'Network error. Please try again.');
+      alert(error.message || 'Network error. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const statusOptions = [
-    { value: 'New', label: 'New', color: 'text-blue-600' },
-    { value: 'Contacted', label: 'Contacted', color: 'text-yellow-600' },
-    { value: 'In Progress', label: 'In Progress', color: 'text-purple-600' },
-    { value: 'Follow-up', label: 'Follow-up', color: 'text-orange-600' },
-    { value: 'Converted', label: 'Converted', color: 'text-green-600' },
-    { value: 'Lost', label: 'Lost', color: 'text-red-600' },
-  ];
+  const handleChange = (e) => {
+    setFormData(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+  };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Update Status: ${lead?.name}`} size="lg">
+    <Modal isOpen={isOpen} onClose={onClose} title={`Add Interaction: ${lead?.name}`}>
       <form onSubmit={handleSubmit} className="space-y-4 text-black">
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-            {error}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+            <select
+              name="type"
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              value={formData.type}
+              onChange={handleChange}
+            >
+              <option value="Call">Call</option>
+              <option value="Email">Email</option>
+              <option value="WhatsApp">WhatsApp</option>
+              <option value="Meeting">Meeting</option>
+              <option value="Note">Note</option>
+            </select>
           </div>
-        )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Lead Status</label>
+            <select
+              name="leadStatus"
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              value={formData.leadStatus}
+              onChange={handleChange}
+            >
+              <option value="New">New</option>
+              <option value="Contacted">Contacted</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Follow-up">Follow-up</option>
+              <option value="Converted">Converted</option>
+              <option value="Lost">Lost</option>
+            </select>
+          </div>
+        </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Lead Status
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Outcome</label>
           <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            required
+            name="outcome"
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            value={formData.outcome}
+            onChange={handleChange}
           >
-            {statusOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
+            <option value="">Select outcome</option>
+            <option value="Interested">Interested</option>
+            <option value="Not Interested">Not Interested</option>
+            <option value="Call Back Later">Call Back Later</option>
+            <option value="No Answer">No Answer</option>
+            <option value="Converted">Converted</option>
+            <option value="Follow-up Scheduled">Follow-up Scheduled</option>
           </select>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Status Update Notes (Optional)
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
           <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={4}
+            name="notes"
+            required
+            rows={3}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-            placeholder="Add any notes about this status change..."
+            value={formData.notes}
+            onChange={handleChange}
+            placeholder="Describe the interaction..."
           />
         </div>
 
-        <div className="bg-gray-50 p-4 rounded-md">
-          <h4 className="font-medium text-gray-900 mb-2">Current Lead Info:</h4>
-          <div className="space-y-1 text-sm text-gray-600">
-            <p><strong>Phone:</strong> {lead?.phone}</p>
-            <p><strong>Email:</strong> {lead?.email}</p>
-            <p><strong>Company:</strong> {lead?.companyName}</p>
-            <p><strong>Value:</strong> ${lead?.leadValue?.toLocaleString() || 0}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Duration (minutes)
+            </label>
+            <input
+              type="number"
+              name="duration"
+              min="0"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              value={formData.duration}
+              onChange={handleChange}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Follow-up Date & Time
+            </label>
+            <input
+              type="datetime-local"
+              name="followUpDate"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              value={formData.followUpDate}
+              onChange={handleChange}
+            />
           </div>
         </div>
 
@@ -955,7 +1005,7 @@ function StatusUpdateModal({ isOpen, onClose, lead, onSuccess }) {
             Cancel
           </Button>
           <Button type="submit" disabled={loading}>
-            {loading ? 'Updating...' : 'Update Status'}
+            {loading ? 'Adding...' : 'Add Interaction'}
           </Button>
         </div>
       </form>

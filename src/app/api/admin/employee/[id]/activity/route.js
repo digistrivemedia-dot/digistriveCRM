@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/mongodb';
 import Lead from '@/models/Lead';
-import Communication from '@/models/Communication';
+import Interaction from '@/models/Interaction';
 import { authenticateUser } from '@/lib/auth';
 
 export async function GET(request, { params }) {
@@ -23,16 +23,16 @@ export async function GET(request, { params }) {
       leadMap[lead._id.toString()] = lead.name;
     });
 
-    // Get recent communications
-    const communications = await Communication.find({ 
-      leadId: { $in: leadIds }
+    // Get recent interactions
+    const interactions = await Interaction.find({
+      lead: { $in: leadIds }
     })
     .sort({ createdAt: -1 })
     .limit(20)
-    .populate('leadId', 'name');
+    .populate('lead', 'name');
 
     // Get recent lead status changes (newly created or updated leads)
-    const recentLeads = await Lead.find({ 
+    const recentLeads = await Lead.find({
       assignedTo: params.id,
       $or: [
         { createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } }, // Last 7 days
@@ -45,12 +45,26 @@ export async function GET(request, { params }) {
     // Combine and format activity
     const activity = [];
 
-    // Add communication activities
-    communications.forEach(comm => {
+    // Add interaction activities
+    interactions.forEach(interaction => {
+      const leadName = interaction.lead?.name || leadMap[interaction.lead?.toString()] || 'Unknown Lead';
+      let description = `${interaction.type} with ${leadName}`;
+
+      if (interaction.outcome) {
+        description += ` - ${interaction.outcome}`;
+      }
+
+      if (interaction.notes) {
+        const shortNotes = interaction.notes.length > 50
+          ? interaction.notes.substring(0, 50) + '...'
+          : interaction.notes;
+        description += `: ${shortNotes}`;
+      }
+
       activity.push({
-        description: `${comm.type.charAt(0).toUpperCase() + comm.type.slice(1)} with ${comm.leadId?.name || 'Unknown Lead'}: ${comm.notes || 'No notes'}`,
-        createdAt: comm.createdAt,
-        type: 'communication'
+        description,
+        createdAt: interaction.createdAt,
+        type: 'interaction'
       });
     });
 

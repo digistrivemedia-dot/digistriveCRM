@@ -347,7 +347,7 @@ export default function LeadDetailPage() {
                     >
                       Back to Leads
                     </Button>
-                    {!editing && (
+                    {!editing && user?.role === 'admin' && (
                       <Button onClick={() => setEditing(true)}>
                         Edit Lead
                       </Button>

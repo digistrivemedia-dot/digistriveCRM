@@ -1,0 +1,13 @@
+name,phone,email,companyName,productInterest,source,leadValue,priority,notes
+John Doe,+1234567890,john@example.com,ABC Corp,Software Development,Website,5000,High,Interested in custom software
+Jane Smith,+0987654321,jane@example.com,XYZ Ltd,Digital Marketing,Referral,3000,Medium,Looking for SEO services
+Michael Chen,+1555010203,m.chen@techflow.io,TechFlow,Cloud Hosting,LinkedIn,12000,High,Enterprise migration inquiry
+Sarah Miller,+442071234567,sarah.m@globalretail.com,Global Retail,E-commerce Platform,Webinar,8500,Medium,Follow up after Q3 budget approval
+Robert Wilson,+14155552678,rwilson@freelance.net,Wilson Designs,Graphic Design,Cold Call,1500,Low,Price sensitive but needs quick turnaround
+Emily Rodriguez,+525512345678,emily.r@mexicorp.mx,MexiCorp,Cybersecurity,Partner,25000,High,Needs full audit and compliance report
+David Park,+821012345678,dpark@seoulsoft.kr,SeoulSoft,Mobile App Dev,Website,7000,Medium,Interested in iOS and Android cross-platform
+Alice Thompson,+12125550987,alice@creative.co,Creative Co,Brand Identity,Referral,4500,Low,Referred by Jane Smith
+Kevin O'Leary,+35316789000,kevin@sharktech.ie,Shark Tech,AI Integration,Events,50000,High,Interested in LLM deployment for customer service
+Lisa Wong,+6561234567,lisa.wong@asiapacific.sg,APAC Logistics,ERP Systems,Google Ads,15000,Medium,Requires multi-language support
+Marcus Thorne,+27111234567,mthorne@safrica.co.za,Thorne Industries,Logistics Software,Website,9200,Medium,Interested in fleet tracking
+Elena Rossi,+39021234567,e.rossi@italy-design.it,Rossi & Co,UI/UX Audit,Referral,2100,Low,Wants a quick website review
