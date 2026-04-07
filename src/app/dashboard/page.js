@@ -114,14 +114,14 @@ export default function DashboardPage() {
               </h1>
               <p className="text-slate-500 text-sm mt-0.5">Track your leads and performance at a glance</p>
             </div>
-            {user?.role !== 'admin' && (
+            {/* {user?.role !== 'admin' && (
               <Button onClick={() => router.push('/request-leads')}>
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                 </svg>
                 Request Leads
               </Button>
-            )}
+            )} */}
           </div>
 
           {/* Stats */}
