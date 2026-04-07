@@ -66,12 +66,8 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/dashboard" className="flex items-center gap-2.5 flex-shrink-0">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <svg className="w-4.5 h-4.5 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            </div>
-            <span className="text-white font-bold text-lg tracking-tight">CRM Pro</span>
+            <img src="/logo.png" alt="DigiCRM" className="w-8 h-8 rounded-lg object-contain bg-white" />
+            <span className="text-white font-bold text-lg tracking-tight">DigiCRM</span>
           </Link>
 
           {/* Desktop Nav */}

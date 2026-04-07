@@ -58,12 +58,8 @@ export default function AdminRegisterPage() {
       <div className="w-full max-w-md">
         {/* Brand */}
         <div className="flex items-center justify-center gap-2.5 mb-8">
-          <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center">
-            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
-          <span className="font-bold text-xl text-slate-900">CRM Pro</span>
+          <img src="/logo.png" alt="DigiCRM" className="w-9 h-9 rounded-xl object-contain" />
+          <span className="font-bold text-xl text-slate-900">DigiCRM</span>
         </div>
 
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8">

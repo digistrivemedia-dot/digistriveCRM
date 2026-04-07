@@ -9,8 +9,12 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata = {
-  title: "CRM Pro",
+  title: "DigiCRM",
   description: "Professional CRM for managing leads and customer relationships",
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({ children }) {
