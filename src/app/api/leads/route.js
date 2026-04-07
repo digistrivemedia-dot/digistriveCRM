@@ -58,7 +58,7 @@ export async function GET(request) {
 
     const leads = await Lead.find(query)
       .populate('assignedTo', 'name email')
-      .populate('productInterest', 'name')
+
       .populate('source', 'name')
       .populate('createdBy', 'name')
       .sort(sortOptions)
@@ -96,7 +96,7 @@ export async function POST(request) {
       productInterest, source, leadValue, assignedTo, priority, notes,
     } = body;
 
-    if (!name || !phone || !productInterest || !source || !leadValue) {
+    if (!name || !phone || !productInterest || !source) {
       return NextResponse.json({ error: 'Required fields missing' }, { status: 400 });
     }
 
@@ -112,14 +112,14 @@ export async function POST(request) {
 
     const lead = await Lead.create({
       name, phone, email, whatsappNumber, address, companyName,
-      productInterest, source, leadValue: parseFloat(leadValue),
+      productInterest, source, leadValue: leadValue !== '' && leadValue != null ? parseFloat(leadValue) : undefined,
       assignedTo: finalAssignedTo, priority: priority || 'Medium',
       notes, createdBy: user.userId,
     });
 
     const populatedLead = await Lead.findById(lead._id)
       .populate('assignedTo', 'name email')
-      .populate('productInterest', 'name')
+
       .populate('source', 'name')
       .populate('createdBy', 'name');
 

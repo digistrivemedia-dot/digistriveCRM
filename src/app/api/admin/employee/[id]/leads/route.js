@@ -21,7 +21,6 @@ export async function GET(request, { params }) {
 
     // Get recent leads assigned to this employee
     const leads = await Lead.find({ assignedTo: params.id })
-      .populate('productInterest', 'name')
       .populate('source', 'name')
       .sort({ createdAt: -1 })
       .limit(limit)
@@ -37,7 +36,7 @@ export async function GET(request, { params }) {
       status: lead.status,
       priority: lead.priority,
       leadValue: lead.leadValue || 0,
-      productInterest: lead.productInterest?.name || 'Unknown',
+      productInterest: lead.productInterest || '',
       source: lead.source?.name || 'Unknown',
       createdAt: lead.createdAt,
       updatedAt: lead.updatedAt,

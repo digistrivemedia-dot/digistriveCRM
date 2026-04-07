@@ -25,7 +25,7 @@ export async function GET(request, { params }) {
 
     const lead = await Lead.findOne(query)
       .populate('assignedTo', 'name email')
-      .populate('productInterest', 'name')
+
       .populate('source', 'name')
       .populate('createdBy', 'name');
 
@@ -88,7 +88,7 @@ export async function PUT(request, { params }) {
       { new: true, runValidators: true }
     )
       .populate('assignedTo', 'name email')
-      .populate('productInterest', 'name')
+
       .populate('source', 'name')
       .populate('createdBy', 'name');
 

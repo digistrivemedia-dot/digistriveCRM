@@ -22,8 +22,7 @@ const LeadSchema = new mongoose.Schema({
     type: String,
   },
   productInterest: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Product',
+    type: String,
     required: true,
   },
   source: {
@@ -33,7 +32,6 @@ const LeadSchema = new mongoose.Schema({
   },
   leadValue: {
     type: Number,
-    required: true,
   },
   assignedTo: {
     type: mongoose.Schema.Types.ObjectId,

@@ -27,7 +27,6 @@ export async function GET(request) {
     }
     
     const leads = await Lead.find(query)
-      .populate('productInterest', 'name')
       .populate('source', 'name')
       .sort({ updatedAt: -1 })
       .limit(limit)
@@ -43,7 +42,7 @@ export async function GET(request) {
       status: lead.status,
       priority: lead.priority,
       leadValue: lead.leadValue || 0,
-      productInterest: lead.productInterest?.name || 'Unknown',
+      productInterest: lead.productInterest || '',
       source: lead.source?.name || 'Unknown',
       notes: lead.notes,
       createdAt: lead.createdAt,

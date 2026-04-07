@@ -557,60 +557,116 @@ export default function LeadsPage() {
 
 // Simple Add Lead Modal Component
 function AddLeadModal({ isOpen, onClose, onSuccess, currentUser }) {
-  const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    email: '',
-    companyName: '',
-    productInterest: '',
-    source: '',
-    leadValue: '',
-    assignedTo: '',
-    priority: 'Medium',
-    notes: '',
-  });
+  const emptyForm = {
+    name: '', phone: '', email: '', companyName: '',
+    productInterest: '', source: '', leadValue: '',
+    assignedTo: '', priority: 'Medium', notes: '',
+  };
+  const [formData, setFormData] = useState(emptyForm);
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
+  const [serverError, setServerError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [products, setProducts] = useState([]);
   const [sources, setSources] = useState([]);
   const [users, setUsers] = useState([]);
 
   useEffect(() => {
     if (isOpen) {
       fetchDropdownData();
+      setFormData(emptyForm);
+      setErrors({});
+      setTouched({});
+      setServerError('');
     }
   }, [isOpen]);
 
   const fetchDropdownData = async () => {
     try {
-      const [productsRes, sourcesRes, usersRes] = await Promise.all([
-        fetch('/api/products'),
+      const [sourcesRes, usersRes] = await Promise.all([
         fetch('/api/sources'),
         fetch('/api/users', { credentials: 'include' }),
       ]);
+      if (sourcesRes.ok) setSources((await sourcesRes.json()).sources);
+      if (usersRes.ok) setUsers((await usersRes.json()).users);
+    } catch {}
+  };
 
-      if (productsRes.ok) {
-        const productsData = await productsRes.json();
-        setProducts(productsData.products);
-      }
-
-      if (sourcesRes.ok) {
-        const sourcesData = await sourcesRes.json();
-        setSources(sourcesData.sources);
-      }
-
-      if (usersRes.ok) {
-        const usersData = await usersRes.json();
-        setUsers(usersData.users);
-      }
-    } catch (error) {
-      console.error('Error fetching dropdown data:', error);
+  // --- Validation rules ---
+  const validate = (data) => {
+    const e = {};
+    if (!data.name.trim()) {
+      e.name = 'Full name is required.';
+    } else if (data.name.trim().length < 2) {
+      e.name = 'Name must be at least 2 characters.';
     }
+
+    if (!data.phone.trim()) {
+      e.phone = 'Phone number is required.';
+    } else if (data.phone.replace(/\D/g, '').length !== 10) {
+      e.phone = 'Phone number must be exactly 10 digits.';
+    }
+
+    if (data.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email.trim())) {
+      e.email = 'Enter a valid email address.';
+    }
+
+    if (!data.productInterest.trim()) {
+      e.productInterest = 'Product interest is required.';
+    }
+
+    if (!data.source) {
+      e.source = 'Please select a lead source.';
+    }
+
+    if (data.leadValue !== '' && data.leadValue !== null) {
+      const val = Number(data.leadValue);
+      if (isNaN(val) || val < 0) {
+        e.leadValue = 'Lead value must be a positive number.';
+      }
+    }
+
+    return e;
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    const updated = { ...formData, [name]: value };
+    setFormData(updated);
+    // Clear error for this field as user types (if it was already touched)
+    if (touched[name]) {
+      const newErrors = validate(updated);
+      setErrors(prev => ({ ...prev, [name]: newErrors[name] }));
+    }
+  };
+
+  const handleBlur = (e) => {
+    const { name } = e.target;
+    setTouched(prev => ({ ...prev, [name]: true }));
+    const newErrors = validate(formData);
+    setErrors(prev => ({ ...prev, [name]: newErrors[name] }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    // Touch all fields to show all errors
+    const allTouched = Object.keys(formData).reduce((acc, k) => ({ ...acc, [k]: true }), {});
+    setTouched(allTouched);
 
+    const validationErrors = validate(formData);
+    setErrors(validationErrors);
+
+    if (Object.keys(validationErrors).length > 0) {
+      // Focus the first invalid field
+      const firstErrorField = ['name', 'phone', 'email', 'productInterest', 'source', 'leadValue']
+        .find(f => validationErrors[f]);
+      if (firstErrorField) {
+        document.querySelector(`[name="${firstErrorField}"]`)?.focus();
+      }
+      return;
+    }
+
+    setLoading(true);
+    setServerError('');
     try {
       const response = await fetch('/api/leads', {
         method: 'POST',
@@ -618,87 +674,118 @@ function AddLeadModal({ isOpen, onClose, onSuccess, currentUser }) {
         credentials: 'include',
         body: JSON.stringify(formData),
       });
-
       if (response.ok) {
         onSuccess();
-        setFormData({
-          name: '', phone: '', email: '', companyName: '',
-          productInterest: '', source: '', leadValue: '', assignedTo: '',
-          priority: 'Medium', notes: '',
-        });
+        setFormData(emptyForm);
+        setErrors({});
+        setTouched({});
       } else {
-        const error = await response.json();
-        alert(error.error || 'Failed to create lead');
+        const err = await response.json();
+        setServerError(err.error || 'Failed to create lead. Please try again.');
       }
-    } catch (error) {
-      alert('Network error. Please try again.');
+    } catch {
+      setServerError('Network error. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChange = (e) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
-  };
+  // Helper to get input class with error state
+  const inputCls = (field) =>
+    `w-full px-3 py-2.5 border rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 transition-colors text-sm bg-white ${
+      touched[field] && errors[field]
+        ? 'border-red-400 focus:ring-red-500/20 focus:border-red-500'
+        : 'border-slate-200 focus:ring-blue-500/20 focus:border-blue-500'
+    }`;
+
+  const FieldError = ({ field }) =>
+    touched[field] && errors[field] ? (
+      <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+        <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+        </svg>
+        {errors[field]}
+      </p>
+    ) : null;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Add New Lead" size="lg">
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} noValidate className="space-y-5">
+
+        {serverError && (
+          <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+            <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+            </svg>
+            {serverError}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-              Name *
+              Full Name <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               name="name"
-              required
-              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
+              placeholder="e.g. John Doe"
+              className={inputCls('name')}
               value={formData.name}
               onChange={handleChange}
+              onBlur={handleBlur}
             />
+            <FieldError field="name" />
           </div>
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-              Phone *
+              Phone Number <span className="text-red-500">*</span>
             </label>
             <input
               type="tel"
               name="phone"
-              required
-              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
+              placeholder="e.g. 98765 43210"
+              maxLength={10}
+              className={inputCls('phone')}
               value={formData.phone}
-              onChange={handleChange}
+              onChange={(e) => {
+                e.target.value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                handleChange(e);
+              }}
+              onBlur={handleBlur}
             />
+            <FieldError field="phone" />
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-              Email
+              Email <span className="text-slate-400 font-normal text-xs">(optional)</span>
             </label>
             <input
               type="email"
               name="email"
-              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
+              placeholder="john@company.com"
+              className={inputCls('email')}
               value={formData.email}
               onChange={handleChange}
+              onBlur={handleBlur}
             />
+            <FieldError field="email" />
           </div>
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-              Company Name
+              Company Name <span className="text-slate-400 font-normal text-xs">(optional)</span>
             </label>
             <input
               type="text"
               name="companyName"
-              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
+              placeholder="e.g. Acme Corp"
+              className={inputCls('companyName')}
               value={formData.companyName}
               onChange={handleChange}
+              onBlur={handleBlur}
             />
           </div>
         </div>
@@ -706,88 +793,80 @@ function AddLeadModal({ isOpen, onClose, onSuccess, currentUser }) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-              Product Interest *
+              Product Interest <span className="text-red-500">*</span>
             </label>
-            <select
+            <input
+              type="text"
               name="productInterest"
-              required
-              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
+              placeholder="e.g. Software Development"
+              className={inputCls('productInterest')}
               value={formData.productInterest}
               onChange={handleChange}
-            >
-              <option value="">Select Product</option>
-              {products.map((product) => (
-                <option key={product._id} value={product._id}>
-                  {product.name}
-                </option>
-              ))}
-            </select>
+              onBlur={handleBlur}
+            />
+            <FieldError field="productInterest" />
           </div>
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-              Source *
+              Source <span className="text-red-500">*</span>
             </label>
             <select
               name="source"
-              required
-              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
+              className={inputCls('source')}
               value={formData.source}
               onChange={handleChange}
+              onBlur={handleBlur}
             >
-              <option value="">Select Source</option>
-              {sources.map((source) => (
-                <option key={source._id} value={source._id}>
-                  {source.name}
-                </option>
+              <option value="">Select source...</option>
+              {sources.map((s) => (
+                <option key={s._id} value={s._id}>{s.name}</option>
               ))}
             </select>
+            <FieldError field="source" />
           </div>
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-              Lead Value *
+              Lead Value <span className="text-slate-400 font-normal text-xs">(optional)</span>
             </label>
             <input
               type="number"
               name="leadValue"
-              required
+              placeholder="0"
               min="0"
               step="0.01"
-              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
+              className={inputCls('leadValue')}
               value={formData.leadValue}
               onChange={handleChange}
+              onBlur={handleBlur}
             />
+            <FieldError field="leadValue" />
           </div>
         </div>
 
-        {/* Assigned To field - only show for admins */}
         {currentUser?.role === 'admin' && (
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-              Assign To
+              Assign To <span className="text-slate-400 font-normal text-xs">(optional)</span>
             </label>
             <select
               name="assignedTo"
-              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
+              className={inputCls('assignedTo')}
               value={formData.assignedTo}
               onChange={handleChange}
             >
-              <option value="">Select Employee (leave blank for self)</option>
-              {users.map((user) => (
-                <option key={user._id} value={user._id}>
-                  {user.name} ({user.role})
-                </option>
+              <option value="">Select employee (leave blank for self)</option>
+              {users.map((u) => (
+                <option key={u._id} value={u._id}>{u.name} ({u.role})</option>
               ))}
             </select>
           </div>
         )}
 
         <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-            Priority
-          </label>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Priority</label>
           <select
             name="priority"
-            className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
+            className={inputCls('priority')}
             value={formData.priority}
             onChange={handleChange}
           >
@@ -799,23 +878,27 @@ function AddLeadModal({ isOpen, onClose, onSuccess, currentUser }) {
 
         <div>
           <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-            Notes
+            Notes <span className="text-slate-400 font-normal text-xs">(optional)</span>
           </label>
           <textarea
             name="notes"
             rows={3}
-            className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
+            placeholder="Any additional details about this lead..."
+            className={inputCls('notes')}
             value={formData.notes}
             onChange={handleChange}
           />
         </div>
 
-        <div className="flex justify-end space-x-3 pt-4">
-          <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
+        <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
+          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={loading}>
-            {loading ? 'Creating...' : 'Create Lead'}
+            {loading ? (
+              <>
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Creating...
+              </>
+            ) : 'Create Lead'}
           </Button>
         </div>
       </form>
