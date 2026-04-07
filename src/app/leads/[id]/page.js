@@ -164,23 +164,23 @@ export default function LeadDetailPage() {
 
   const getStatusColor = (status) => {
     const colors = {
-      'New': 'bg-blue-100 text-blue-800',
-      'Contacted': 'bg-yellow-100 text-yellow-800',
-      'In Progress': 'bg-purple-100 text-purple-800',
-      'Converted': 'bg-green-100 text-green-800',
-      'Lost': 'bg-red-100 text-red-800',
-      'Follow-up': 'bg-orange-100 text-orange-800',
+      'New':         'bg-blue-50 text-blue-700 ring-1 ring-blue-200',
+      'Contacted':   'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
+      'In Progress': 'bg-violet-50 text-violet-700 ring-1 ring-violet-200',
+      'Converted':   'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',
+      'Lost':        'bg-red-50 text-red-700 ring-1 ring-red-200',
+      'Follow-up':   'bg-orange-50 text-orange-700 ring-1 ring-orange-200',
     };
-    return colors[status] || 'bg-gray-100 text-gray-800';
+    return colors[status] || 'bg-slate-50 text-slate-700 ring-1 ring-slate-200';
   };
 
   const getPriorityColor = (priority) => {
     const colors = {
-      'Low': 'bg-green-100 text-green-800',
-      'Medium': 'bg-yellow-100 text-yellow-800',
-      'High': 'bg-red-100 text-red-800',
+      'Low':    'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',
+      'Medium': 'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
+      'High':   'bg-red-50 text-red-700 ring-1 ring-red-200',
     };
-    return colors[priority] || 'bg-gray-100 text-gray-800';
+    return colors[priority] || 'bg-slate-50 text-slate-700 ring-1 ring-slate-200';
   };
 
   const handleLeadNavigation = (leadId) => {
@@ -193,10 +193,13 @@ export default function LeadDetailPage() {
   if (loading) {
     return (
       <ProtectedRoute>
-        <div className="min-h-screen bg-gray-50 text-black">
+        <div className="min-h-screen bg-slate-50">
           <Navbar />
           <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600"></div>
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+              <p className="text-sm text-slate-500 font-medium">Loading lead...</p>
+            </div>
           </div>
         </div>
       </ProtectedRoute>
@@ -206,10 +209,10 @@ export default function LeadDetailPage() {
   if (!lead) {
     return (
       <ProtectedRoute>
-        <div className="min-h-screen bg-gray-50 text-black">
+        <div className="min-h-screen bg-slate-50">
           <Navbar />
-          <div className="text-center py-12">
-            <h2 className="text-2xl font-bold text-gray-900">Lead not found</h2>
+          <div className="text-center py-16">
+            <h2 className="text-2xl font-bold text-slate-900">Lead not found</h2>
           </div>
         </div>
       </ProtectedRoute>
@@ -218,24 +221,19 @@ export default function LeadDetailPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50 text-black">
+      <div className="min-h-screen bg-slate-50">
         <Navbar />
         <div className="flex">
           {/* Sidebar */}
-          <div className={`${sidebarOpen ? 'block' : 'hidden'} lg:block lg:w-80 bg-white shadow-lg border-r border-gray-200 h-screen overflow-y-auto fixed lg:sticky top-0 z-40 text-black`}>
-            <div className="p-4 border-b border-gray-200">
+          <div className={`${sidebarOpen ? 'block' : 'hidden'} lg:block lg:w-72 bg-white border-r border-slate-200 h-screen overflow-y-auto fixed lg:sticky top-0 z-40`}>
+            <div className="p-4 border-b border-slate-100">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900">All Leads</h2>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="lg:hidden"
-                  onClick={() => setSidebarOpen(false)}
-                >
-                  ✕
-                </Button>
+                <h2 className="text-sm font-bold text-slate-900 uppercase tracking-widest">All Leads</h2>
+                <button className="lg:hidden p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer" onClick={() => setSidebarOpen(false)}>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
               </div>
-              <p className="text-sm text-gray-500 mt-1">{allLeads.length} total leads</p>
+              <p className="text-xs text-slate-500 mt-1">{allLeads.length} leads total</p>
             </div>
             
             <div className="p-2">
@@ -251,8 +249,8 @@ export default function LeadDetailPage() {
                       onClick={() => handleLeadNavigation(leadItem._id)}
                       className={`p-3 rounded-lg cursor-pointer transition-colors ${
                         leadItem._id === params.id
-                          ? 'bg-indigo-50 border border-indigo-200'
-                          : 'hover:bg-gray-50 border border-transparent'
+                          ? 'bg-blue-50 border border-blue-200'
+                          : 'hover:bg-slate-50 border border-transparent'
                       }`}
                     >
                       <div className="flex items-start justify-between">
@@ -305,10 +303,12 @@ export default function LeadDetailPage() {
                   <div className="flex items-center">
                     <Button
                       variant="outline"
+                      size="sm"
                       className="lg:hidden mr-3"
                       onClick={() => setSidebarOpen(true)}
                     >
-                      ☰ Leads
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>
+                      Leads
                     </Button>
                     <div>
                       <div className="flex items-center space-x-3">
@@ -356,7 +356,8 @@ export default function LeadDetailPage() {
                       variant="success"
                       onClick={() => setShowInteractionModal(true)}
                     >
-                      📞 Add Interaction
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                      Add Interaction
                     </Button>
                     {user?.role === 'admin' && (
                       <Button variant="danger" onClick={handleDeleteLead}>
@@ -420,8 +421,8 @@ export default function LeadDetailPage() {
                               </span>
                             </div>
                             {lead.followUpDate && (
-                              <div className="md:col-span-2 bg-orange-50 p-3 rounded-md border border-orange-200">
-                                <strong className="text-orange-800">📅 Follow-up Scheduled:</strong>{' '}
+                              <div className="md:col-span-2 bg-orange-50 p-3 rounded-lg border border-orange-200">
+                                <strong className="text-orange-800">Follow-up Scheduled:</strong>{' '}
                                 <span className="text-orange-900 font-medium">
                                   {new Date(lead.followUpDate).toLocaleString('en-US', {
                                     weekday: 'short',
@@ -459,7 +460,7 @@ export default function LeadDetailPage() {
                         <p className="text-gray-500 text-center py-4">No interactions recorded</p>
                       ) : (
                         interactions.map((interaction) => (
-                          <div key={interaction._id} className="border-l-4 border-blue-400 pl-4 py-2">
+                          <div key={interaction._id} className="border-l-4 border-blue-300 pl-4 py-2 bg-slate-50/50 rounded-r-lg">
                             <div className="flex justify-between items-start">
                               <div>
                                 <div className="flex items-center space-x-2">
@@ -496,7 +497,8 @@ export default function LeadDetailPage() {
                         className="w-full"
                         onClick={() => window.open(`tel:${lead.phone}`)}
                       >
-                        📞 Call {lead.phone}
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" /></svg>
+                        Call {lead.phone}
                       </Button>
                       {lead.email && (
                         <Button
@@ -504,7 +506,8 @@ export default function LeadDetailPage() {
                           className="w-full"
                           onClick={() => window.open(`mailto:${lead.email}`)}
                         >
-                          📧 Email
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>
+                          Send Email
                         </Button>
                       )}
                       {lead.whatsappNumber && (
@@ -513,7 +516,8 @@ export default function LeadDetailPage() {
                           className="w-full"
                           onClick={() => window.open(`https://wa.me/${lead.whatsappNumber}`)}
                         >
-                          📱 WhatsApp
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.16 2.27.293 3.423.406 1.15.112 1.945.96 2.57 1.938.1.157.19.32.27.49.094.2.27.355.483.355.227 0 .409-.155.504-.36.082-.176.162-.354.25-.53.625-.967 1.42-1.815 2.553-1.932a43.47 43.47 0 003.423-.406c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" /></svg>
+                          WhatsApp
                         </Button>
                       )}
                     </div>
@@ -644,74 +648,74 @@ function EditLeadForm({ lead, onSave, onCancel }) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Name</label>
           <input
             type="text"
             name="name"
             required
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
             value={formData.name}
             onChange={handleChange}
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Phone</label>
           <input
             type="tel"
             name="phone"
             required
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
             value={formData.phone}
             onChange={handleChange}
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email</label>
           <input
             type="email"
             name="email"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
             value={formData.email}
             onChange={handleChange}
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp</label>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">WhatsApp</label>
           <input
             type="text"
             name="whatsappNumber"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
             value={formData.whatsappNumber}
             onChange={handleChange}
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Company</label>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Company</label>
           <input
             type="text"
             name="companyName"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
             value={formData.companyName}
             onChange={handleChange}
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Lead Value</label>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Lead Value</label>
           <input
             type="number"
             name="leadValue"
             min="0"
             step="0.01"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
             value={formData.leadValue}
             onChange={handleChange}
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Status</label>
           <select
             name="status"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
             value={formData.status}
             onChange={handleChange}
           >
@@ -724,10 +728,10 @@ function EditLeadForm({ lead, onSave, onCancel }) {
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Priority</label>
           <select
             name="priority"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
             value={formData.priority}
             onChange={handleChange}
           >
@@ -739,7 +743,7 @@ function EditLeadForm({ lead, onSave, onCancel }) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+        <label className="block text-sm font-semibold text-slate-700 mb-1.5">Address</label>
         <input
           type="text"
           name="address"
@@ -750,7 +754,7 @@ function EditLeadForm({ lead, onSave, onCancel }) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+        <label className="block text-sm font-semibold text-slate-700 mb-1.5">Notes</label>
         <textarea
           name="notes"
           rows={3}
@@ -861,11 +865,11 @@ function AddInteractionModal({ isOpen, onClose, leadId, onSuccess, currentLead }
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Type</label>
             <select
               name="type"
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
               value={formData.type}
               onChange={handleChange}
             >
@@ -878,11 +882,11 @@ function AddInteractionModal({ isOpen, onClose, leadId, onSuccess, currentLead }
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Lead Status</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Lead Status</label>
             <select
               name="leadStatus"
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
               value={formData.leadStatus}
               onChange={handleChange}
             >
@@ -897,10 +901,10 @@ function AddInteractionModal({ isOpen, onClose, leadId, onSuccess, currentLead }
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Outcome</label>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Outcome</label>
           <select
             name="outcome"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
             value={formData.outcome}
             onChange={handleChange}
           >
@@ -915,12 +919,12 @@ function AddInteractionModal({ isOpen, onClose, leadId, onSuccess, currentLead }
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Notes</label>
           <textarea
             name="notes"
             required
             rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
             value={formData.notes}
             onChange={handleChange}
             placeholder="Describe the interaction..."
@@ -929,26 +933,26 @@ function AddInteractionModal({ isOpen, onClose, leadId, onSuccess, currentLead }
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
               Duration (minutes)
             </label>
             <input
               type="number"
               name="duration"
               min="0"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
               value={formData.duration}
               onChange={handleChange}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
               Follow-up Date & Time
             </label>
             <input
               type="datetime-local"
               name="followUpDate"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
               value={formData.followUpDate}
               onChange={handleChange}
             />
@@ -1114,35 +1118,27 @@ function StatusUpdateModal({ isOpen, onClose, lead, onSuccess }) {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Update Status: ${lead?.name}`} size="lg">
-      <form onSubmit={handleSubmit} className="space-y-4 text-black">
+      <form onSubmit={handleSubmit} className="space-y-5">
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+          <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
             {error}
           </div>
         )}
 
-        <div className="bg-blue-50 p-3 rounded-md border border-blue-200">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <span className="text-blue-600 text-lg">ℹ️</span>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm text-blue-700">
-                Current Status: <strong className="font-semibold">{lead.status}</strong>
-              </p>
-            </div>
-          </div>
+        <div className="flex items-center gap-2.5 bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg text-sm">
+          <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg>
+          Current Status: <strong className="font-semibold ml-1">{lead.status}</strong>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">
             New Status *
           </label>
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
             required
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
           >
             {statusOptions.map((option) => (
               <option key={option.value} value={option.value}>
@@ -1158,15 +1154,15 @@ function StatusUpdateModal({ isOpen, onClose, lead, onSuccess }) {
         {/* Follow-up Date Picker - Only show when status is Follow-up */}
         {status === 'Follow-up' && (
           <div className="bg-orange-50 p-4 rounded-md border border-orange-200">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              📅 Follow-up Date & Time *
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+              Follow-up Date & Time *
             </label>
             <input
               type="datetime-local"
               value={followUpDate}
               onChange={(e) => setFollowUpDate(e.target.value)}
               required={status === 'Follow-up'}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
             />
             <p className="mt-2 text-xs text-orange-700">
               <strong>Set when you should follow up with this lead.</strong> You&apos;ll be reminded to contact them at this time.
@@ -1175,14 +1171,14 @@ function StatusUpdateModal({ isOpen, onClose, lead, onSuccess }) {
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">
             Status Update Notes (Optional)
           </label>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={4}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
             placeholder="Add any notes about this status change (e.g., reason for change, next steps, etc.)"
           />
           <p className="mt-1 text-xs text-gray-500">

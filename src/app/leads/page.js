@@ -73,14 +73,14 @@ export default function LeadsPage() {
 
   const getStatusColor = (status) => {
     const colors = {
-      'New': 'bg-blue-100 text-blue-800',
-      'Contacted': 'bg-yellow-100 text-yellow-800',
-      'In Progress': 'bg-purple-100 text-purple-800',
-      'Converted': 'bg-green-100 text-green-800',
-      'Lost': 'bg-red-100 text-red-800',
-      'Follow-up': 'bg-orange-100 text-orange-800',
+      'New':         'bg-blue-50 text-blue-700 ring-1 ring-blue-200',
+      'Contacted':   'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
+      'In Progress': 'bg-violet-50 text-violet-700 ring-1 ring-violet-200',
+      'Converted':   'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',
+      'Lost':        'bg-red-50 text-red-700 ring-1 ring-red-200',
+      'Follow-up':   'bg-orange-50 text-orange-700 ring-1 ring-orange-200',
     };
-    return colors[status] || 'bg-gray-100 text-gray-800';
+    return colors[status] || 'bg-slate-50 text-slate-700 ring-1 ring-slate-200';
   };
 
   const handleFilterChange = (key, value) => {
@@ -129,10 +129,13 @@ export default function LeadsPage() {
   if (loading && leads.length === 0) {
     return (
       <ProtectedRoute>
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-slate-50">
           <Navbar />
           <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600"></div>
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+              <p className="text-sm text-slate-500 font-medium">Loading leads...</p>
+            </div>
           </div>
         </div>
       </ProtectedRoute>
@@ -141,12 +144,15 @@ export default function LeadsPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-slate-50">
         <Navbar />
-        <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-          <div className="px-4 py-6 sm:px-0">
-            <div className="flex justify-between items-center mb-6">
-              <h1 className="text-2xl font-bold text-gray-900">Leads Management</h1>
+        <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+          <div className="">
+            <div className="flex justify-between items-center mb-7">
+              <div>
+                <h1 className="text-2xl font-bold text-slate-900">Leads Management</h1>
+                <p className="text-slate-500 text-sm mt-0.5">Manage and track all your leads</p>
+              </div>
               <div className="flex space-x-3">
                 <Button onClick={() => setShowAddModal(true)}>
                   Add Lead
@@ -163,27 +169,27 @@ export default function LeadsPage() {
             </div>
 
             {/* Filters */}
-            <Card className="mb-6 text-black">
+            <Card className="mb-6">
               <CardContent className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">
                       Search
                     </label>
                     <input
                       type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
                       placeholder="Search by name, phone, email..."
                       value={filters.search}
                       onChange={(e) => handleFilterChange('search', e.target.value)}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">
                       Status
                     </label>
                     <select
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
                       value={filters.status}
                       onChange={(e) => handleFilterChange('status', e.target.value)}
                     >
@@ -197,11 +203,11 @@ export default function LeadsPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">
                       Results per page
                     </label>
                     <select
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
                       value={filters.limit}
                       onChange={(e) => handleFilterChange('limit', parseInt(e.target.value))}
                     >
@@ -270,38 +276,38 @@ export default function LeadsPage() {
               </CardHeader>
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
+                  <table className="min-w-full">
+                    <thead>
+                      <tr className="bg-slate-50/80 border-y border-slate-100">
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest w-12">
                           <input
                             type="checkbox"
                             checked={selectedLeads.size === leads.length && leads.length > 0}
                             onChange={handleSelectAll}
-                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                            className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                           />
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">
                           Name
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">
                           Contact
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">
                           Status
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">
                           Value
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">
                           Assigned To
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">
                           Actions
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="divide-y divide-slate-100">
                       {leads.length === 0 ? (
                         <tr>
                           <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
@@ -312,7 +318,7 @@ export default function LeadsPage() {
                         leads.map((lead) => (
                           <tr 
                             key={lead._id} 
-                            className="hover:bg-gray-50 cursor-pointer transition-colors"
+                            className="hover:bg-blue-50/50 cursor-pointer transition-colors"
                             onClick={() => handleLeadClick(lead._id)}
                           >
                             <td className="px-6 py-4 whitespace-nowrap">
@@ -321,7 +327,7 @@ export default function LeadsPage() {
                                 checked={selectedLeads.has(lead._id)}
                                 onChange={() => handleSelectLead(lead._id)}
                                 onClick={(e) => e.stopPropagation()}
-                                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                               />
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
@@ -370,9 +376,9 @@ export default function LeadsPage() {
                                     setSelectedLead(lead);
                                     setShowLogCallModal(true);
                                   }}
-                                  className="text-green-600 hover:text-green-900 px-2 py-1 rounded bg-green-50 hover:bg-green-100"
+                                  className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 hover:text-emerald-900 px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 transition-colors cursor-pointer"
                                 >
-                                  📞 Call
+                                  Call
                                 </button>
                                 <button
                                   onClick={(e) => {
@@ -380,16 +386,16 @@ export default function LeadsPage() {
                                     setSelectedLead(lead);
                                     setShowInteractionModal(true);
                                   }}
-                                  className="text-indigo-600 hover:text-indigo-900 px-2 py-1 rounded bg-indigo-50 hover:bg-indigo-100"
+                                  className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 hover:text-blue-900 px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors cursor-pointer"
                                 >
-                                  📞 Add Interaction
+                                  Add Interaction
                                 </button>
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleAddNote(lead);
                                   }}
-                                  className="text-blue-600 hover:text-blue-900 px-2 py-1 rounded bg-blue-50 hover:bg-blue-100"
+                                  className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900 px-2.5 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer"
                                 >
                                   Add Note
                                 </button>
@@ -404,7 +410,7 @@ export default function LeadsPage() {
 
                 {/* Pagination */}
                 {pagination.pages > 1 && (
-                  <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                  <div className="px-6 py-4 flex items-center justify-between border-t border-slate-100">
                     <div className="flex-1 flex justify-between sm:hidden">
                       <Button
                         variant="outline"
@@ -438,17 +444,17 @@ export default function LeadsPage() {
                         </p>
                       </div>
                       <div>
-                        <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                        <nav className="inline-flex items-center gap-1">
                           {[...Array(pagination.pages)].map((_, i) => {
                             const page = i + 1;
                             return (
                               <button
                                 key={page}
                                 onClick={() => handlePageChange(page)}
-                                className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                                className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm font-medium transition-colors cursor-pointer ${
                                   page === pagination.current
-                                    ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
-                                    : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                                    ? 'bg-blue-600 text-white'
+                                    : 'text-slate-600 hover:bg-slate-100'
                                 }`}
                               >
                                 {page}
@@ -640,30 +646,30 @@ function AddLeadModal({ isOpen, onClose, onSuccess, currentUser }) {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Add New Lead" size="lg">
-      <form onSubmit={handleSubmit} className="space-y-4 text-black">
+      <form onSubmit={handleSubmit} className="space-y-5">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
               Name *
             </label>
             <input
               type="text"
               name="name"
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
               value={formData.name}
               onChange={handleChange}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
               Phone *
             </label>
             <input
               type="tel"
               name="phone"
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
               value={formData.phone}
               onChange={handleChange}
             />
@@ -672,25 +678,25 @@ function AddLeadModal({ isOpen, onClose, onSuccess, currentUser }) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
               Email
             </label>
             <input
               type="email"
               name="email"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
               value={formData.email}
               onChange={handleChange}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
               Company Name
             </label>
             <input
               type="text"
               name="companyName"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
               value={formData.companyName}
               onChange={handleChange}
             />
@@ -699,13 +705,13 @@ function AddLeadModal({ isOpen, onClose, onSuccess, currentUser }) {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
               Product Interest *
             </label>
             <select
               name="productInterest"
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
               value={formData.productInterest}
               onChange={handleChange}
             >
@@ -718,13 +724,13 @@ function AddLeadModal({ isOpen, onClose, onSuccess, currentUser }) {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
               Source *
             </label>
             <select
               name="source"
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
               value={formData.source}
               onChange={handleChange}
             >
@@ -737,7 +743,7 @@ function AddLeadModal({ isOpen, onClose, onSuccess, currentUser }) {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
               Lead Value *
             </label>
             <input
@@ -746,7 +752,7 @@ function AddLeadModal({ isOpen, onClose, onSuccess, currentUser }) {
               required
               min="0"
               step="0.01"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
               value={formData.leadValue}
               onChange={handleChange}
             />
@@ -756,12 +762,12 @@ function AddLeadModal({ isOpen, onClose, onSuccess, currentUser }) {
         {/* Assigned To field - only show for admins */}
         {currentUser?.role === 'admin' && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
               Assign To
             </label>
             <select
               name="assignedTo"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
               value={formData.assignedTo}
               onChange={handleChange}
             >
@@ -776,12 +782,12 @@ function AddLeadModal({ isOpen, onClose, onSuccess, currentUser }) {
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">
             Priority
           </label>
           <select
             name="priority"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
             value={formData.priority}
             onChange={handleChange}
           >
@@ -792,13 +798,13 @@ function AddLeadModal({ isOpen, onClose, onSuccess, currentUser }) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">
             Notes
           </label>
           <textarea
             name="notes"
             rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
             value={formData.notes}
             onChange={handleChange}
           />
@@ -903,14 +909,14 @@ function AddInteractionModal({ isOpen, onClose, lead, onSuccess }) {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Add Interaction: ${lead?.name}`}>
-      <form onSubmit={handleSubmit} className="space-y-4 text-black">
+      <form onSubmit={handleSubmit} className="space-y-5">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Type</label>
             <select
               name="type"
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
               value={formData.type}
               onChange={handleChange}
             >
@@ -923,11 +929,11 @@ function AddInteractionModal({ isOpen, onClose, lead, onSuccess }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Lead Status</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Lead Status</label>
             <select
               name="leadStatus"
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
               value={formData.leadStatus}
               onChange={handleChange}
             >
@@ -942,10 +948,10 @@ function AddInteractionModal({ isOpen, onClose, lead, onSuccess }) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Outcome</label>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Outcome</label>
           <select
             name="outcome"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
             value={formData.outcome}
             onChange={handleChange}
           >
@@ -960,12 +966,12 @@ function AddInteractionModal({ isOpen, onClose, lead, onSuccess }) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Notes</label>
           <textarea
             name="notes"
             required
             rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
             value={formData.notes}
             onChange={handleChange}
             placeholder="Describe the interaction..."
@@ -974,26 +980,26 @@ function AddInteractionModal({ isOpen, onClose, lead, onSuccess }) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
               Duration (minutes)
             </label>
             <input
               type="number"
               name="duration"
               min="0"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
               value={formData.duration}
               onChange={handleChange}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
               Follow-up Date & Time
             </label>
             <input
               type="datetime-local"
               name="followUpDate"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
               value={formData.followUpDate}
               onChange={handleChange}
             />
@@ -1097,20 +1103,20 @@ function AddNoteModal({ isOpen, onClose, lead, onSuccess }) {
     <Modal isOpen={isOpen} onClose={onClose} title={`Add Communication: ${lead?.name}`} size="lg">
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+          <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
             {error}
           </div>
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
               Communication Type
             </label>
             <select
               value={type}
               onChange={(e) => setType(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
             >
               {communicationTypes.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -1121,21 +1127,21 @@ function AddNoteModal({ isOpen, onClose, lead, onSuccess }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
               Subject (Optional)
             </label>
             <input
               type="text"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
               placeholder="Brief subject..."
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">
             Notes/Details *
           </label>
           <textarea
@@ -1143,20 +1149,20 @@ function AddNoteModal({ isOpen, onClose, lead, onSuccess }) {
             onChange={(e) => setNotes(e.target.value)}
             rows={4}
             required
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
             placeholder="Describe the communication, key points discussed, next steps..."
           />
         </div>
 
         {(type === 'call' || type === 'meeting') && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
               Outcome
             </label>
             <select
               value={outcome}
               onChange={(e) => setOutcome(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
             >
               {outcomes.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -1173,7 +1179,7 @@ function AddNoteModal({ isOpen, onClose, lead, onSuccess }) {
             id="followUpRequired"
             checked={followUpRequired}
             onChange={(e) => setFollowUpRequired(e.target.checked)}
-            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+            className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
           />
           <label htmlFor="followUpRequired" className="text-sm font-medium text-gray-700">
             Follow-up required
@@ -1182,14 +1188,14 @@ function AddNoteModal({ isOpen, onClose, lead, onSuccess }) {
 
         {followUpRequired && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
               Follow-up Date
             </label>
             <input
               type="datetime-local"
               value={followUpDate}
               onChange={(e) => setFollowUpDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
             />
           </div>
         )}
@@ -1244,7 +1250,7 @@ function BulkDeleteModal({ isOpen, onClose, selectedLeads, onSuccess }) {
     <Modal isOpen={isOpen} onClose={onClose} title="Delete Selected Leads" size="md">
       <div className="space-y-4">
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+          <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
             {error}
           </div>
         )}
@@ -1332,9 +1338,9 @@ function BulkStatusModal({ isOpen, onClose, selectedLeads, onSuccess }) {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Change Status for Selected Leads" size="lg">
-      <form onSubmit={handleStatusChange} className="space-y-4 text-black">
+      <form onSubmit={handleStatusChange} className="space-y-5">
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+          <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
             {error}
           </div>
         )}
@@ -1344,14 +1350,14 @@ function BulkStatusModal({ isOpen, onClose, selectedLeads, onSuccess }) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">
             New Status *
           </label>
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
             required
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
           >
             {statusOptions.map((option) => (
               <option key={option.value} value={option.value} disabled={option.disabled}>
@@ -1362,14 +1368,14 @@ function BulkStatusModal({ isOpen, onClose, selectedLeads, onSuccess }) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">
             Status Update Notes (Optional)
           </label>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
             placeholder="Add any notes about this status change..."
           />
         </div>
@@ -1515,9 +1521,9 @@ function LogCallModal({ isOpen, onClose, lead, onSuccess }) {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Log Call: ${lead?.name}`} size="lg">
-      <form onSubmit={handleSubmit} className="space-y-4 text-black">
+      <form onSubmit={handleSubmit} className="space-y-5">
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+          <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
             {error}
           </div>
         )}
@@ -1537,14 +1543,14 @@ function LogCallModal({ isOpen, onClose, lead, onSuccess }) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
               Call Outcome *
             </label>
             <select
               value={callOutcome}
               onChange={(e) => setCallOutcome(e.target.value)}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
             >
               {callOutcomeOptions.map((option) => (
                 <option key={option.value} value={option.value} disabled={option.disabled}>
@@ -1555,14 +1561,14 @@ function LogCallModal({ isOpen, onClose, lead, onSuccess }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
               Lead Status *
             </label>
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
             >
               {statusOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -1574,7 +1580,7 @@ function LogCallModal({ isOpen, onClose, lead, onSuccess }) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">
             Call Duration (minutes)
           </label>
           <input
@@ -1583,13 +1589,13 @@ function LogCallModal({ isOpen, onClose, lead, onSuccess }) {
             step="1"
             value={duration}
             onChange={(e) => setDuration(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
             placeholder="How long was the call?"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">
             Call Notes *
           </label>
           <textarea
@@ -1597,7 +1603,7 @@ function LogCallModal({ isOpen, onClose, lead, onSuccess }) {
             onChange={(e) => setNotes(e.target.value)}
             rows={4}
             required
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
             placeholder="What was discussed? Key points, concerns, next steps..."
           />
         </div>
@@ -1608,7 +1614,7 @@ function LogCallModal({ isOpen, onClose, lead, onSuccess }) {
             id="followUpRequired"
             checked={followUpRequired}
             onChange={(e) => setFollowUpRequired(e.target.checked)}
-            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+            className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
           />
           <label htmlFor="followUpRequired" className="text-sm font-medium text-gray-700">
             Follow-up required
@@ -1617,7 +1623,7 @@ function LogCallModal({ isOpen, onClose, lead, onSuccess }) {
 
         {followUpRequired && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
               Follow-up Date & Time *
             </label>
             <input
@@ -1625,7 +1631,7 @@ function LogCallModal({ isOpen, onClose, lead, onSuccess }) {
               value={followUpDate}
               onChange={(e) => setFollowUpDate(e.target.value)}
               required={followUpRequired}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
             />
             <p className="mt-1 text-xs text-gray-500">
               When should you call this lead again?
@@ -1728,9 +1734,9 @@ function BulkAssignModal({ isOpen, onClose, selectedLeads, onSuccess }) {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Assign Leads to Caller" size="lg">
-      <form onSubmit={handleAssign} className="space-y-4 text-black">
+      <form onSubmit={handleAssign} className="space-y-5">
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+          <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
             {error}
           </div>
         )}
@@ -1745,28 +1751,20 @@ function BulkAssignModal({ isOpen, onClose, selectedLeads, onSuccess }) {
           Assigning <strong>{selectedLeads.size}</strong> selected lead{selectedLeads.size !== 1 ? 's' : ''}.
         </div>
 
-        <div className="bg-blue-50 p-4 rounded-md border border-blue-200">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <span className="text-blue-600">ℹ️</span>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm text-blue-700">
-                <strong>Duplicate Prevention:</strong> Only unassigned leads will be assigned. Leads already assigned to other callers will be skipped automatically.
-              </p>
-            </div>
-          </div>
+        <div className="flex items-start gap-2.5 bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg text-sm">
+          <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg>
+          <p><strong>Duplicate Prevention:</strong> Only unassigned leads will be assigned. Leads already assigned to other callers will be skipped automatically.</p>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">
             Assign to Caller *
           </label>
           <select
             value={assignedTo}
             onChange={(e) => setAssignedTo(e.target.value)}
             required
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500"
+            className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white"
           >
             <option value="">Select a caller...</option>
             {users.map((user) => (

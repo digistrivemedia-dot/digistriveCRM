@@ -1,32 +1,30 @@
-export default function Button({ 
-  children, 
-  variant = 'primary', 
-  size = 'md', 
-  disabled = false, 
-  className = '', 
-  ...props 
+export default function Button({
+  children,
+  variant = 'primary',
+  size = 'md',
+  disabled = false,
+  className = '',
+  ...props
 }) {
-  const baseClasses = 'inline-flex items-center justify-center font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-200';
-  
+  const base = 'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 cursor-pointer select-none';
+
   const variants = {
-    primary: 'bg-indigo-600 hover:bg-indigo-700 text-white focus:ring-indigo-500',
-    secondary: 'bg-gray-600 hover:bg-gray-700 text-white focus:ring-gray-500',
-    success: 'bg-green-600 hover:bg-green-700 text-white focus:ring-green-500',
-    danger: 'bg-red-600 hover:bg-red-700 text-white focus:ring-red-500',
-    outline: 'border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 focus:ring-indigo-500',
+    primary:   'bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500 shadow-sm',
+    secondary: 'bg-slate-700 hover:bg-slate-800 text-white focus:ring-slate-500 shadow-sm',
+    success:   'bg-emerald-600 hover:bg-emerald-700 text-white focus:ring-emerald-500 shadow-sm',
+    danger:    'bg-red-600 hover:bg-red-700 text-white focus:ring-red-500 shadow-sm',
+    outline:   'border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 focus:ring-blue-500 shadow-sm',
   };
-  
+
   const sizes = {
-    sm: 'px-3 py-2 text-sm',
-    md: 'px-4 py-2 text-sm',
-    lg: 'px-6 py-3 text-base',
+    sm: 'px-3 py-1.5 text-xs gap-1.5',
+    md: 'px-4 py-2.5 text-sm gap-2',
+    lg: 'px-5 py-3 text-base gap-2',
   };
-  
-  const disabledClasses = disabled ? 'opacity-50 cursor-not-allowed' : '';
-  
+
   return (
     <button
-      className={`${baseClasses} ${variants[variant]} ${sizes[size]} ${disabledClasses} ${className}`}
+      className={`${base} ${variants[variant] ?? variants.primary} ${sizes[size]} ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}
       disabled={disabled}
       {...props}
     >

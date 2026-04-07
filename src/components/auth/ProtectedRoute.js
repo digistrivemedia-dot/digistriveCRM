@@ -11,13 +11,10 @@ export default function ProtectedRoute({ children, requiredRole = null }) {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await fetch('/api/auth/me', {
-          credentials: 'include',
-        });
+        const response = await fetch('/api/auth/me', { credentials: 'include' });
         if (response.ok) {
           const data = await response.json();
           setUser(data.user);
-          
           if (requiredRole && data.user.role !== requiredRole) {
             router.push('/dashboard');
             return;
@@ -26,29 +23,28 @@ export default function ProtectedRoute({ children, requiredRole = null }) {
           router.push('/login');
           return;
         }
-      } catch (error) {
-        console.error('Auth check failed:', error);
+      } catch {
         router.push('/login');
         return;
       } finally {
         setLoading(false);
       }
     };
-
     checkAuth();
   }, [router, requiredRole]);
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-slate-500 font-medium">Loading...</p>
+        </div>
       </div>
     );
   }
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
 
   return children;
 }
