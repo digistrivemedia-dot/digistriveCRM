@@ -181,8 +181,8 @@ export default function EmployeeDetailPage() {
               <CardContent>
                 <div className="divide-y divide-slate-100">
                   {[
-                    { label: 'Average Lead Value', value: `$${stats.avgLeadValue?.toLocaleString()}` },
-                    { label: 'Total Pipeline Value', value: `$${stats.totalValue?.toLocaleString()}` },
+                    { label: 'Average Lead Value', value: `₹${stats.avgLeadValue?.toLocaleString()}` },
+                    { label: 'Total Pipeline Value', value: `₹${stats.totalValue?.toLocaleString()}` },
                     { label: 'Calls per Lead', value: stats.totalLeads > 0 ? (stats.totalCalls / stats.totalLeads).toFixed(1) : '0.0' },
                     { label: 'Member Since', value: new Date(employee.createdAt).toLocaleDateString() },
                   ].map((item) => (
@@ -246,7 +246,7 @@ export default function EmployeeDetailPage() {
                         <div className="min-w-0">
                           <p className="text-sm font-semibold text-slate-800 truncate">{lead.name}</p>
                           <p className="text-xs text-slate-500">{lead.phone}</p>
-                          <p className="text-xs text-slate-400 mt-0.5 tabular-nums">${lead.leadValue?.toLocaleString()} · {new Date(lead.createdAt).toLocaleDateString()}</p>
+                          <p className="text-xs text-slate-400 mt-0.5 tabular-nums">₹{lead.leadValue?.toLocaleString()} · {new Date(lead.createdAt).toLocaleDateString()}</p>
                         </div>
                         <span className={`ml-3 flex-shrink-0 inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${statusConfig[lead.status] || 'bg-slate-100 text-slate-600'}`}>
                           {lead.status}

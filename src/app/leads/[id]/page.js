@@ -273,7 +273,7 @@ export default function LeadDetailPage() {
                       </div>
                       <div className="mt-2 flex items-center justify-between">
                         <span className="text-xs text-gray-500">
-                          ${leadItem.leadValue?.toLocaleString() || '0'}
+                          ₹{leadItem.leadValue?.toLocaleString() || '0'}
                         </span>
                         <span className={`px-2 py-1 text-xs rounded-full ${getPriorityColor(leadItem.priority)}`}>
                           {leadItem.priority}
@@ -398,7 +398,7 @@ export default function LeadDetailPage() {
                           <div className="space-y-2 text-sm">
                             <div><strong>Product Interest:</strong> {lead.productInterest?.name}</div>
                             <div><strong>Source:</strong> {lead.source?.name}</div>
-                            <div><strong>Lead Value:</strong> ${lead.leadValue?.toLocaleString()}</div>
+                            <div><strong>Lead Value:</strong> ₹{lead.leadValue?.toLocaleString()}</div>
                             <div><strong>Assigned To:</strong> {lead.assignedTo?.name}</div>
                             <div className="flex items-center justify-between">
                               <div>
@@ -1192,7 +1192,7 @@ function StatusUpdateModal({ isOpen, onClose, lead, onSuccess }) {
             <p><strong>Phone:</strong> {lead?.phone}</p>
             <p><strong>Email:</strong> {lead?.email || 'N/A'}</p>
             <p><strong>Company:</strong> {lead?.companyName || 'N/A'}</p>
-            <p><strong>Value:</strong> ${lead?.leadValue?.toLocaleString() || 0}</p>
+            <p><strong>Value:</strong> ₹{lead?.leadValue?.toLocaleString() || 0}</p>
           </div>
         </div>
 

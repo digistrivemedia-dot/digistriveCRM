@@ -244,7 +244,7 @@ export default function DashboardPage() {
                           )}
                         </td>
                         <td className="px-6 py-4">
-                          <span className="text-sm font-semibold text-slate-900 tabular-nums">${lead.leadValue?.toLocaleString() || 0}</span>
+                          <span className="text-sm font-semibold text-slate-900 tabular-nums">₹{lead.leadValue?.toLocaleString() || 0}</span>
                         </td>
                         <td className="px-6 py-4">
                           <span className="text-sm text-slate-500">{new Date(lead.updatedAt).toLocaleDateString()}</span>

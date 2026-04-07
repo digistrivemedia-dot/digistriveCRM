@@ -106,9 +106,9 @@ export default function AnalyticsPage() {
           {/* Summary Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-7">
             <ValueCard label="Total Leads"     value={analytics.totalLeads || 0}                                           color="text-blue-600" />
-            <ValueCard label="Total Value"     value={`$${analytics.valueStats?.totalValue?.toLocaleString() || '0'}`}     color="text-emerald-600" />
-            <ValueCard label="Converted Value" value={`$${analytics.valueStats?.convertedValue?.toLocaleString() || '0'}`} color="text-emerald-700" />
-            <ValueCard label="Avg Lead Value"  value={`$${analytics.valueStats?.avgLeadValue?.toLocaleString() || '0'}`}   color="text-blue-600" />
+            <ValueCard label="Total Value"     value={`₹${analytics.valueStats?.totalValue?.toLocaleString() || '0'}`}     color="text-emerald-600" />
+            <ValueCard label="Converted Value" value={`₹${analytics.valueStats?.convertedValue?.toLocaleString() || '0'}`} color="text-emerald-700" />
+            <ValueCard label="Avg Lead Value"  value={`₹${analytics.valueStats?.avgLeadValue?.toLocaleString() || '0'}`}   color="text-blue-600" />
           </div>
 
           {/* Conversion Funnel */}

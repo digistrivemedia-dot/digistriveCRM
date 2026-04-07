@@ -360,7 +360,7 @@ export default function LeadsPage() {
                               </StatusHistoryTooltip>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              ${lead.leadValue?.toLocaleString() || '0'}
+                              ₹{lead.leadValue?.toLocaleString() || '0'}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                               {lead.assignedTo?.name || 'Unassigned'}
@@ -826,14 +826,14 @@ function AddLeadModal({ isOpen, onClose, onSuccess, currentUser }) {
           </div>
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-              Lead Value <span className="text-slate-400 font-normal text-xs">(optional)</span>
+              Lead Value (₹) <span className="text-slate-400 font-normal text-xs">(optional)</span>
             </label>
             <input
               type="number"
               name="leadValue"
-              placeholder="0"
+              placeholder="e.g. 50000"
               min="0"
-              step="0.01"
+              step="1"
               className={inputCls('leadValue')}
               value={formData.leadValue}
               onChange={handleChange}
@@ -1727,7 +1727,7 @@ function LogCallModal({ isOpen, onClose, lead, onSuccess }) {
           <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
             <p><strong>Company:</strong> {lead?.companyName || 'N/A'}</p>
             <p><strong>Email:</strong> {lead?.email || 'N/A'}</p>
-            <p><strong>Value:</strong> ${lead?.leadValue?.toLocaleString() || '0'}</p>
+            <p><strong>Value:</strong> ₹{lead?.leadValue?.toLocaleString() || '0'}</p>
             <p><strong>Current Status:</strong> {lead?.status}</p>
           </div>
         </div>
