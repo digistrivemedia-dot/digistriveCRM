@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import Navbar from '@/components/layout/Navbar';
@@ -22,6 +22,8 @@ export default function LeadsPage() {
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
   const [showBulkStatusModal, setShowBulkStatusModal] = useState(false);
   const [showBulkAssignModal, setShowBulkAssignModal] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
   const [filters, setFilters] = useState({
     status: 'all',
     search: '',
@@ -95,6 +97,28 @@ export default function LeadsPage() {
     setFilters(prev => ({ ...prev, page }));
   };
 
+  const handleExport = async () => {
+    setExportLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (filters.status !== 'all') params.set('status', filters.status);
+      if (filters.search) params.set('search', filters.search);
+      const res = await fetch(`/api/leads/export?${params}`, { credentials: 'include' });
+      if (!res.ok) throw new Error('Export failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `leads_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert('Export failed. Please try again.');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
   const handleAddNote = (lead) => {
     setSelectedLead(lead);
     setShowNoteModal(true);
@@ -158,12 +182,22 @@ export default function LeadsPage() {
                   Add Lead
                 </Button>
                 {user?.role === 'admin' && (
-                  <Button variant="outline">
+                  <Button variant="outline" onClick={() => setShowUploadModal(true)}>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                    </svg>
                     Bulk Upload
                   </Button>
                 )}
-                <Button variant="outline">
-                  Export
+                <Button variant="outline" onClick={handleExport} disabled={exportLoading}>
+                  {exportLoading ? (
+                    <span className="w-4 h-4 border-2 border-slate-400 border-t-slate-700 rounded-full animate-spin" />
+                  ) : (
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                    </svg>
+                  )}
+                  Export CSV
                 </Button>
               </div>
             </div>
@@ -547,6 +581,16 @@ export default function LeadsPage() {
           onSuccess={() => {
             setShowBulkAssignModal(false);
             clearSelection();
+            fetchLeads();
+          }}
+        />
+
+        {/* CSV Upload Modal */}
+        <CsvUploadModal
+          isOpen={showUploadModal}
+          onClose={() => setShowUploadModal(false)}
+          onSuccess={() => {
+            setShowUploadModal(false);
             fetchLeads();
           }}
         />
@@ -1984,5 +2028,315 @@ function StatusHistoryTooltip({ leadId, children }) {
         </div>
       )}
     </div>
+  );
+}
+// ─── CSV Upload Modal ──────────────────────────────────────────────────────────
+function CsvUploadModal({ isOpen, onClose, onSuccess }) {
+  const STEPS = { UPLOAD: 'upload', RESULT: 'result' };
+  const [step, setStep] = useState(STEPS.UPLOAD);
+  const [file, setFile] = useState(null);
+  const [dragging, setDragging] = useState(false);
+  const [assignedTo, setAssignedTo] = useState('');
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [fileError, setFileError] = useState('');
+  const fileInputRef = React.useRef(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setStep(STEPS.UPLOAD);
+      setFile(null);
+      setResult(null);
+      setFileError('');
+      setAssignedTo('');
+      fetchUsers();
+    }
+  }, [isOpen]);
+
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch('/api/users', { credentials: 'include' });
+      if (res.ok) setUsers((await res.json()).users || []);
+    } catch {}
+  };
+
+  const validateFile = (f) => {
+    if (!f) return 'Please select a file.';
+    if (!f.name.toLowerCase().endsWith('.csv')) return 'Only .csv files are accepted. Make sure your file ends with .csv';
+    if (f.size > 5 * 1024 * 1024) return 'File is too large. Maximum size is 5 MB.';
+    return '';
+  };
+
+  const handleFileSelect = (f) => {
+    const err = validateFile(f);
+    setFileError(err);
+    setFile(err ? null : f);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragging(false);
+    handleFileSelect(e.dataTransfer.files[0]);
+  };
+
+  const handleUpload = async () => {
+    if (!file) { setFileError('Please select a CSV file first.'); return; }
+    setLoading(true);
+    try {
+      const fd = new FormData();
+      fd.append('csvFile', file);
+      if (assignedTo) fd.append('assignedTo', assignedTo);
+      const res = await fetch('/api/admin/upload-leads', { method: 'POST', credentials: 'include', body: fd });
+      const data = await res.json();
+      setResult(res.ok ? data : { serverError: data.error || 'Upload failed.' });
+      setStep(STEPS.RESULT);
+    } catch {
+      setResult({ serverError: 'Network error. Please try again.' });
+      setStep(STEPS.RESULT);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const inputCls = 'w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm bg-white';
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Bulk Upload Leads" size="lg">
+
+      {/* Step indicator — 2 steps */}
+      <div className="flex items-center gap-2 mb-6">
+        {[{ key: STEPS.UPLOAD, label: '1. Upload File' }, { key: STEPS.RESULT, label: '2. Results' }].map((s, i, arr) => (
+          <React.Fragment key={s.key}>
+            <div className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full transition-colors ${
+              step === s.key ? 'bg-blue-600 text-white' :
+              step === STEPS.RESULT && i === 0 ? 'bg-emerald-100 text-emerald-700' :
+              'bg-slate-100 text-slate-400'
+            }`}>
+              {step === STEPS.RESULT && i === 0 && (
+                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              )}
+              {s.label}
+            </div>
+            {i < arr.length - 1 && <div className="flex-1 h-px bg-slate-200" />}
+          </React.Fragment>
+        ))}
+      </div>
+
+      {/* ── UPLOAD ── */}
+      {step === STEPS.UPLOAD && (
+        <div className="space-y-5">
+
+          {/* Compact format hint */}
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold text-slate-700 mb-1.5">Required CSV format</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { label: 'Name', req: true },
+                    { label: 'Phone', req: true },
+                    { label: 'Email', req: false },
+                    { label: 'Company', req: false },
+                    { label: 'Product Interest', req: false },
+                    { label: 'Source', req: false },
+                    { label: 'Lead Value', req: false },
+                    { label: 'Priority', req: false },
+                    { label: 'Notes', req: false },
+                  ].map(c => (
+                    <span key={c.label} className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md font-medium ${
+                      c.req ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'
+                    }`}>
+                      {c.label}
+                      {c.req && <span className="text-red-500">*</span>}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-xs text-slate-500 mt-2">
+                  <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-medium text-xs">Name*</span>
+                  {' '}and{' '}
+                  <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-medium text-xs">Phone*</span>
+                  {' '}are required. Lead Value must be a plain number (e.g. <span className="font-mono">50000</span>). Priority: Low / Medium / High.
+                </p>
+              </div>
+              <button
+                onClick={() => window.open('/api/admin/upload-leads/template', '_blank')}
+                className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+                Template
+              </button>
+            </div>
+          </div>
+
+          {/* Drop zone */}
+          <div
+            onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+            className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
+              dragging ? 'border-blue-400 bg-blue-50' :
+              file ? 'border-emerald-400 bg-emerald-50' :
+              'border-slate-300 bg-slate-50 hover:border-blue-400 hover:bg-blue-50/40'
+            }`}
+          >
+            <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={(e) => handleFileSelect(e.target.files?.[0])} />
+            {file ? (
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
+                  <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <p className="text-sm font-semibold text-emerald-700">{file.name}</p>
+                <p className="text-xs text-slate-500">{(file.size / 1024).toFixed(1)} KB · Click to change</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-10 h-10 bg-slate-200 rounded-xl flex items-center justify-center">
+                  <svg className="w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                  </svg>
+                </div>
+                <p className="text-sm font-semibold text-slate-700">Drag & drop your CSV here, or click to browse</p>
+                <p className="text-xs text-slate-400">.csv files only · max 5 MB</p>
+              </div>
+            )}
+          </div>
+
+          {fileError && (
+            <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+              <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              {fileError}
+            </div>
+          )}
+
+          {/* Assign to */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+              Assign All Leads To <span className="text-slate-400 font-normal text-xs">(optional)</span>
+            </label>
+            <select className={inputCls} value={assignedTo} onChange={e => setAssignedTo(e.target.value)}>
+              <option value="">Leave unassigned</option>
+              {users.map(u => <option key={u._id} value={u._id}>{u.name} ({u.role})</option>)}
+            </select>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
+            <button onClick={onClose} className="px-4 py-2.5 text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Cancel</button>
+            <button
+              onClick={handleUpload}
+              disabled={!file || loading}
+              className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-colors"
+            >
+              {loading ? (
+                <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Importing...</>
+              ) : (
+                <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" /></svg>Import Leads</>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── RESULTS ── */}
+      {step === STEPS.RESULT && result && (
+        <div className="space-y-5">
+          {result.serverError ? (
+            <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl p-4">
+              <svg className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+              </svg>
+              <div>
+                <p className="text-sm font-semibold text-red-700">Upload Failed</p>
+                <p className="text-sm text-red-600 mt-0.5">{result.serverError}</p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-center">
+                  <p className="text-2xl font-bold text-slate-900">{result.total}</p>
+                  <p className="text-xs font-semibold text-slate-500 mt-0.5 uppercase tracking-wide">Total Rows</p>
+                </div>
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center">
+                  <p className="text-2xl font-bold text-emerald-700">{result.inserted}</p>
+                  <p className="text-xs font-semibold text-emerald-600 mt-0.5 uppercase tracking-wide">Imported</p>
+                </div>
+                <div className={`rounded-xl p-4 text-center border ${result.skipped > 0 ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-200'}`}>
+                  <p className={`text-2xl font-bold ${result.skipped > 0 ? 'text-amber-700' : 'text-slate-400'}`}>{result.skipped}</p>
+                  <p className={`text-xs font-semibold mt-0.5 uppercase tracking-wide ${result.skipped > 0 ? 'text-amber-600' : 'text-slate-400'}`}>Skipped</p>
+                </div>
+              </div>
+
+              {result.inserted > 0 && (
+                <div className="flex items-center gap-2.5 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+                  <svg className="w-5 h-5 text-emerald-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-sm font-semibold text-emerald-700">
+                    {result.inserted} lead{result.inserted !== 1 ? 's' : ''} successfully imported.
+                  </p>
+                </div>
+              )}
+
+              {result.rowErrors?.length > 0 && (
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-2">
+                    {result.rowErrors.length} row{result.rowErrors.length !== 1 ? 's' : ''} skipped — fix these and re-upload
+                  </p>
+                  <div className="border border-amber-200 rounded-xl overflow-hidden max-h-44 overflow-y-auto">
+                    <table className="min-w-full text-xs">
+                      <thead className="bg-amber-50 sticky top-0">
+                        <tr>
+                          <th className="px-4 py-2 text-left font-semibold text-amber-700">Row</th>
+                          <th className="px-4 py-2 text-left font-semibold text-amber-700">Column</th>
+                          <th className="px-4 py-2 text-left font-semibold text-amber-700">Problem</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-amber-100 bg-white">
+                        {result.rowErrors.map((e, i) => (
+                          <tr key={i}>
+                            <td className="px-4 py-2 font-mono font-bold text-slate-700">#{e.row}</td>
+                            <td className="px-4 py-2 font-medium text-slate-600">{e.field}</td>
+                            <td className="px-4 py-2 text-slate-600">{e.message}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1.5">Fix these rows in your CSV and upload again. Already-imported rows won&apos;t be duplicated.</p>
+                </div>
+              )}
+            </>
+          )}
+
+          <div className="flex justify-between gap-3 pt-2 border-t border-slate-100">
+            <button
+              onClick={() => { setStep(STEPS.UPLOAD); setFile(null); setResult(null); setFileError(''); }}
+              className="px-4 py-2.5 text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-1.5"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+              </svg>
+              Upload Another File
+            </button>
+            <button
+              onClick={result?.inserted > 0 ? onSuccess : onClose}
+              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors"
+            >
+              {result?.inserted > 0 ? 'Done — View Leads' : 'Close'}
+            </button>
+          </div>
+        </div>
+      )}
+    </Modal>
   );
 }

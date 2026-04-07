@@ -1,9 +1,55 @@
 import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/mongodb';
 import Lead from '@/models/Lead';
-import Product from '@/models/Product';
 import Source from '@/models/Source';
 import { authenticateUser } from '@/lib/auth';
+
+// Robust CSV row parser — handles quoted fields with embedded commas/newlines
+function parseCSVRow(row) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < row.length; i++) {
+    const ch = row[i];
+    if (ch === '"') {
+      if (inQuotes && row[i + 1] === '"') { current += '"'; i++; }
+      else { inQuotes = !inQuotes; }
+    } else if (ch === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  result.push(current.trim());
+  return result;
+}
+
+// Column aliases — flexible header matching
+const COLUMN_ALIASES = {
+  name:            ['name', 'full name', 'fullname', 'customer name', 'lead name'],
+  phone:           ['phone', 'phone number', 'mobile', 'mobile number', 'contact', 'contact number'],
+  email:           ['email', 'email address', 'e-mail', 'mail'],
+  companyName:     ['company', 'company name', 'companyname', 'organization', 'org'],
+  productInterest: ['product', 'product interest', 'productinterest', 'service', 'product/service', 'interest'],
+  source:          ['source', 'lead source', 'leadsource', 'referral', 'channel'],
+  leadValue:       ['value', 'lead value', 'leadvalue', 'amount', 'price', 'deal value', 'deal size'],
+  priority:        ['priority', 'importance', 'level'],
+  notes:           ['notes', 'comments', 'description', 'remarks', 'note'],
+};
+
+function buildColumnIndex(headers) {
+  const index = {};
+  headers.forEach((h, i) => {
+    const lower = h.toLowerCase().replace(/['"]/g, '').trim();
+    for (const [field, aliases] of Object.entries(COLUMN_ALIASES)) {
+      if (aliases.includes(lower)) {
+        if (index[field] === undefined) index[field] = i; // first match wins
+      }
+    }
+  });
+  return index;
+}
 
 export async function POST(request) {
   try {
@@ -16,205 +62,165 @@ export async function POST(request) {
 
     const formData = await request.formData();
     const csvFile = formData.get('csvFile');
-    const assignedTo = formData.get('assignedTo') || null; // Can be null for unassigned
+    const assignedTo = formData.get('assignedTo') || null;
 
     if (!csvFile) {
+      return NextResponse.json({ error: 'No file uploaded.' }, { status: 400 });
+    }
+
+    // Validate file type
+    const fileName = csvFile.name || '';
+    if (!fileName.toLowerCase().endsWith('.csv')) {
       return NextResponse.json(
-        { error: 'CSV file is required' },
+        { error: 'Only .csv files are accepted. Please upload a CSV file.' },
         { status: 400 }
       );
     }
 
-    // Read CSV content
     const csvContent = await csvFile.text();
-    const lines = csvContent.split('\n').filter(line => line.trim() !== '');
-    
+    // Normalise line endings
+    const lines = csvContent.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+      .split('\n').filter(l => l.trim() !== '');
+
     if (lines.length < 2) {
       return NextResponse.json(
-        { error: 'CSV file must contain at least a header row and one data row' },
+        { error: 'The CSV file must have a header row and at least one data row.' },
         { status: 400 }
       );
     }
 
-    // Parse CSV header
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-    
-    // Expected columns mapping
-    const columnMap = {
-      'name': ['name', 'full name', 'fullname', 'customer name'],
-      'phone': ['phone', 'phone number', 'mobile', 'contact'],
-      'email': ['email', 'email address', 'e-mail'],
-      'companyName': ['company', 'company name', 'companyname', 'organization'],
-      'productInterest': ['product', 'product interest', 'productinterest', 'service'],
-      'source': ['source', 'lead source', 'leadsource', 'referral'],
-      'leadValue': ['value', 'lead value', 'leadvalue', 'amount', 'price'],
-      'priority': ['priority', 'importance'],
-      'notes': ['notes', 'comments', 'description', 'remarks']
-    };
+    const headers = parseCSVRow(lines[0]);
+    const colIdx = buildColumnIndex(headers);
 
-    // Find column indices
-    const getColumnIndex = (field) => {
-      const possibleNames = columnMap[field] || [field];
-      for (let i = 0; i < headers.length; i++) {
-        if (possibleNames.includes(headers[i])) {
-          return i;
-        }
-      }
-      return -1;
-    };
-
-    // Get default product and source for missing data, create if none exist
-    let defaultProduct = await Product.findOne({ isActive: true }).sort({ createdAt: 1 });
-    let defaultSource = await Source.findOne({ isActive: true }).sort({ createdAt: 1 });
-
-    // Create default product if none exists
-    if (!defaultProduct) {
-      defaultProduct = await Product.create({
-        name: 'General Service',
-        description: 'Default product for CSV uploads',
-        createdBy: user.userId,
-        isActive: true
-      });
+    // Must have at least name and phone columns
+    if (colIdx.name === undefined) {
+      return NextResponse.json(
+        { error: 'Missing required column: "Name". Please check the CSV template and add a Name column.' },
+        { status: 400 }
+      );
+    }
+    if (colIdx.phone === undefined) {
+      return NextResponse.json(
+        { error: 'Missing required column: "Phone". Please check the CSV template and add a Phone column.' },
+        { status: 400 }
+      );
     }
 
-    // Create default source if none exists
-    if (!defaultSource) {
-      defaultSource = await Source.create({
+    // Build source lookup cache
+    const allSources = await Source.find({ isActive: true });
+    const sourceCache = {};
+    allSources.forEach(s => { sourceCache[s.name.toLowerCase()] = s._id; });
+
+    // Get or create a default source for rows that don't specify one
+    let defaultSourceId = allSources[0]?._id || null;
+    if (!defaultSourceId) {
+      const created = await Source.create({
         name: 'CSV Upload',
-        description: 'Default source for CSV uploads',
+        description: 'Auto-created as default source for CSV imports',
         createdBy: user.userId,
-        isActive: true
+        isActive: true,
       });
+      defaultSourceId = created._id;
+      sourceCache['csv upload'] = defaultSourceId;
     }
 
     const leadData = [];
-    const errors = [];
-    let successCount = 0;
-    let skipCount = 0;
+    const rowErrors = [];
+    let skipped = 0;
 
-    // Process each data row
     for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
-      
-      try {
-        const nameIndex = getColumnIndex('name');
-        const phoneIndex = getColumnIndex('phone');
-        
-        // Skip if missing required fields
-        if (nameIndex === -1 || phoneIndex === -1 || 
-            !values[nameIndex] || !values[phoneIndex]) {
-          errors.push(`Row ${i + 1}: Missing required name or phone`);
-          skipCount++;
-          continue;
-        }
+      const rowNum = i + 1; // 1-based, header is row 1
+      const values = parseCSVRow(lines[i]);
 
-        // Get product by name or create/use default
-        let productId = defaultProduct?._id;
-        const productIndex = getColumnIndex('productInterest');
-        if (productIndex !== -1 && values[productIndex]) {
-          let product = await Product.findOne({ 
-            name: { $regex: values[productIndex], $options: 'i' },
-            isActive: true 
-          });
-          
-          // If product doesn't exist, create it
-          if (!product) {
-            product = await Product.create({
-              name: values[productIndex],
-              description: `Auto-created from CSV upload: ${values[productIndex]}`,
-              createdBy: user.userId,
-              isActive: true
-            });
-          }
-          productId = product._id;
-        }
+      const get = (field) => {
+        const idx = colIdx[field];
+        return idx !== undefined && values[idx] ? values[idx].trim() : '';
+      };
 
-        // Get source by name or create/use default
-        let sourceId = defaultSource?._id;
-        const sourceIndex = getColumnIndex('source');
-        if (sourceIndex !== -1 && values[sourceIndex]) {
-          let source = await Source.findOne({ 
-            name: { $regex: values[sourceIndex], $options: 'i' },
-            isActive: true 
-          });
-          
-          // If source doesn't exist, create it
-          if (!source) {
-            source = await Source.create({
-              name: values[sourceIndex],
-              description: `Auto-created from CSV upload: ${values[sourceIndex]}`,
-              createdBy: user.userId,
-              isActive: true
-            });
-          }
-          sourceId = source._id;
-        }
+      const nameVal  = get('name');
+      const phoneVal = get('phone');
 
-        // Parse lead value
-        const leadValueIndex = getColumnIndex('leadValue');
-        let leadValue = 0;
-        if (leadValueIndex !== -1 && values[leadValueIndex]) {
-          leadValue = parseFloat(values[leadValueIndex].replace(/[^0-9.-]+/g, '')) || 0;
-        }
-
-        // Get priority
-        const priorityIndex = getColumnIndex('priority');
-        let priority = 'Medium';
-        if (priorityIndex !== -1 && values[priorityIndex]) {
-          const priorityValue = values[priorityIndex].toLowerCase();
-          if (['low', 'medium', 'high'].includes(priorityValue)) {
-            priority = values[priorityIndex].charAt(0).toUpperCase() + values[priorityIndex].slice(1).toLowerCase();
-          }
-        }
-
-        const leadObj = {
-          name: values[nameIndex],
-          phone: values[phoneIndex],
-          email: getColumnIndex('email') !== -1 ? values[getColumnIndex('email')] || '' : '',
-          companyName: getColumnIndex('companyName') !== -1 ? values[getColumnIndex('companyName')] || '' : '',
-          productInterest: productId,
-          source: sourceId,
-          leadValue,
-          assignedTo,
-          priority,
-          notes: getColumnIndex('notes') !== -1 ? values[getColumnIndex('notes')] || '' : '',
-          createdBy: user.userId,
-        };
-
-        // Validate required fields exist
-        if (!leadObj.productInterest || !leadObj.source) {
-          errors.push(`Row ${i + 1}: Could not find valid product or source`);
-          skipCount++;
-          continue;
-        }
-
-        leadData.push(leadObj);
-        successCount++;
-
-      } catch (error) {
-        errors.push(`Row ${i + 1}: ${error.message}`);
-        skipCount++;
+      if (!nameVal) {
+        rowErrors.push({ row: rowNum, field: 'Name', message: 'Name is empty — this field is required.' });
+        skipped++;
+        continue;
       }
+      if (!phoneVal) {
+        rowErrors.push({ row: rowNum, field: 'Phone', message: `Name "${nameVal}" has no phone number — required.` });
+        skipped++;
+        continue;
+      }
+
+      // Resolve source
+      const sourceText = get('source').toLowerCase();
+      let sourceId = defaultSourceId;
+      if (sourceText) {
+        if (sourceCache[sourceText]) {
+          sourceId = sourceCache[sourceText];
+        } else {
+          // Auto-create new source
+          try {
+            const newSource = await Source.create({
+              name: get('source'),
+              description: `Auto-created from CSV import`,
+              createdBy: user.userId,
+              isActive: true,
+            });
+            sourceCache[sourceText] = newSource._id;
+            sourceId = newSource._id;
+          } catch {
+            sourceId = defaultSourceId;
+          }
+        }
+      }
+
+      // Parse lead value
+      const rawValue = get('leadValue').replace(/[₹$,\s]/g, '');
+      const leadValue = rawValue ? (parseFloat(rawValue) || undefined) : undefined;
+
+      // Validate lead value if present
+      if (leadValue !== undefined && (isNaN(leadValue) || leadValue < 0)) {
+        rowErrors.push({ row: rowNum, field: 'Lead Value', message: `"${get('leadValue')}" is not a valid number for Lead Value. Use numeric values like 50000.` });
+        skipped++;
+        continue;
+      }
+
+      // Priority
+      const priorityRaw = get('priority').toLowerCase();
+      const VALID_PRIORITIES = { low: 'Low', medium: 'Medium', high: 'High' };
+      const priority = VALID_PRIORITIES[priorityRaw] || 'Medium';
+
+      leadData.push({
+        name: nameVal,
+        phone: phoneVal,
+        email: get('email'),
+        companyName: get('companyName'),
+        productInterest: get('productInterest') || 'General',
+        source: sourceId,
+        leadValue,
+        assignedTo,
+        priority,
+        notes: get('notes'),
+        createdBy: user.userId,
+      });
     }
 
-    // Insert valid leads
+    let inserted = 0;
     if (leadData.length > 0) {
-      await Lead.insertMany(leadData);
+      const result = await Lead.insertMany(leadData, { ordered: false });
+      inserted = result.length;
     }
 
     return NextResponse.json({
-      message: 'CSV upload completed',
-      count: successCount,
-      skipped: skipCount,
-      errors: errors,
+      success: true,
+      inserted,
+      skipped,
+      rowErrors,          // array of { row, field, message }
       total: lines.length - 1,
     });
 
   } catch (error) {
     console.error('CSV upload error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Server error during upload. Please try again.' }, { status: 500 });
   }
 }
