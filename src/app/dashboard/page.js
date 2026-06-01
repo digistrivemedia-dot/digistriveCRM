@@ -34,6 +34,105 @@ const StatCard = ({ label, value, icon, color }) => (
   </Card>
 );
 
+function FollowUpSection({ leads, onNavigate }) {
+  const now = new Date();
+  const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date(now); todayEnd.setHours(23, 59, 59, 999);
+
+  const followUps = leads
+    .filter(l => l.status === 'Follow-up' && l.followUpDate)
+    .sort((a, b) => new Date(a.followUpDate) - new Date(b.followUpDate));
+
+  // Also include follow-up status leads without a date
+  const followUpsNoDate = leads.filter(l => l.status === 'Follow-up' && !l.followUpDate);
+
+  const allFollowUps = [...followUps, ...followUpsNoDate];
+
+  if (allFollowUps.length === 0) return null;
+
+  const getDateLabel = (dateStr) => {
+    if (!dateStr) return { label: 'No date set', cls: 'text-slate-400' };
+    const d = new Date(dateStr);
+    if (d < todayStart) {
+      const days = Math.ceil((todayStart - d) / (1000 * 60 * 60 * 24));
+      return { label: `Overdue by ${days}d`, cls: 'text-red-600 font-semibold' };
+    }
+    if (d <= todayEnd) return { label: 'Today', cls: 'text-orange-600 font-semibold' };
+    const days = Math.ceil((d - todayEnd) / (1000 * 60 * 60 * 24));
+    return { label: days === 1 ? 'Tomorrow' : `In ${days}d`, cls: 'text-emerald-600' };
+  };
+
+  const formatDateTime = (dateStr) => {
+    if (!dateStr) return null;
+    const d = new Date(dateStr);
+    return d.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true });
+  };
+
+  return (
+    <Card className="mb-7 border-orange-200">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-orange-50 rounded-lg flex items-center justify-center">
+              <svg className="w-4 h-4 text-orange-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+              </svg>
+            </div>
+            <div>
+              <CardTitle className="text-base">Follow-up Leads</CardTitle>
+              <p className="text-xs text-slate-500 mt-0.5">{allFollowUps.length} lead{allFollowUps.length !== 1 ? 's' : ''} require follow-up</p>
+            </div>
+          </div>
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-50 text-orange-700 ring-1 ring-orange-200">
+            {allFollowUps.length} pending
+          </span>
+        </div>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className="overflow-x-auto">
+          <table className="min-w-full">
+            <thead>
+              <tr className="bg-orange-50/60 border-y border-orange-100">
+                <th className="px-6 py-2.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Lead</th>
+                <th className="px-6 py-2.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Contact</th>
+                <th className="px-6 py-2.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Follow-up Date</th>
+                <th className="px-6 py-2.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">When</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-orange-50">
+              {allFollowUps.map((lead) => {
+                const { label, cls } = getDateLabel(lead.followUpDate);
+                return (
+                  <tr
+                    key={lead._id}
+                    onClick={() => onNavigate(lead._id)}
+                    className="hover:bg-orange-50/40 cursor-pointer transition-colors"
+                  >
+                    <td className="px-6 py-3.5">
+                      <p className="text-sm font-semibold text-blue-600 hover:text-blue-700">{lead.name}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">{lead.productInterest} · {lead.source}</p>
+                    </td>
+                    <td className="px-6 py-3.5">
+                      <p className="text-sm text-slate-900">{lead.phone}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">{lead.email}</p>
+                    </td>
+                    <td className="px-6 py-3.5">
+                      <p className="text-sm text-slate-700">{formatDateTime(lead.followUpDate) || '—'}</p>
+                    </td>
+                    <td className="px-6 py-3.5">
+                      <span className={`text-xs ${cls}`}>{label}</span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 const LoadingSkeleton = () => (
   <ProtectedRoute>
     <div className="min-h-screen bg-slate-50">
@@ -137,6 +236,9 @@ export default function DashboardPage() {
             <StatCard label="Follow-ups Today" value={stats.followUpsToday} color="bg-orange-50 text-orange-600"
               icon="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
           </div>
+
+          {/* Follow-up Leads */}
+          <FollowUpSection leads={leads} onNavigate={(id) => router.push(`/leads/${id}`)} />
 
           {/* Conversion rate */}
           <Card className="mb-7">

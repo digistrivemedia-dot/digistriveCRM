@@ -45,6 +45,7 @@ export async function GET(request) {
       productInterest: lead.productInterest || '',
       source: lead.source?.name || 'Unknown',
       notes: lead.notes,
+      followUpDate: lead.followUpDate || null,
       createdAt: lead.createdAt,
       updatedAt: lead.updatedAt,
     }));
