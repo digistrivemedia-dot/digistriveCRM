@@ -160,6 +160,7 @@ export default function DashboardPage() {
   const [user, setUser] = useState(null);
   const [stats, setStats] = useState({ totalLeads: 0, convertedLeads: 0, pendingLeads: 0, followUpsToday: 0, conversionRate: 0, totalCalls: 0 });
   const [leads, setLeads] = useState([]);
+  const [followUpLeads, setFollowUpLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
   const router = useRouter();
@@ -182,20 +183,24 @@ export default function DashboardPage() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const [statsRes, leadsRes] = await Promise.all([
+      const [statsRes, leadsRes, followUpRes] = await Promise.all([
         fetch('/api/dashboard/stats', { credentials: 'include' }),
         fetch('/api/dashboard/leads', { credentials: 'include' }),
+        fetch('/api/dashboard/leads?status=Follow-up&limit=200', { credentials: 'include' }),
       ]);
       if (statsRes.ok) setStats((await statsRes.json()).stats);
       if (leadsRes.ok) setLeads((await leadsRes.json()).leads);
+      if (followUpRes.ok) setFollowUpLeads((await followUpRes.json()).leads);
     } catch {} finally {
       setLoading(false);
     }
   };
 
-  const filteredLeads = statusFilter === 'all'
-    ? leads
-    : leads.filter(lead => lead.status.toLowerCase().replace(/[\s-]/g, '') === statusFilter);
+  const filteredLeads = statusFilter === 'followup'
+    ? followUpLeads
+    : statusFilter === 'all'
+      ? leads
+      : leads.filter(lead => lead.status.toLowerCase().replace(/[\s-]/g, '') === statusFilter);
 
   if (loading) return <LoadingSkeleton />;
 
@@ -238,7 +243,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Follow-up Leads */}
-          <FollowUpSection leads={leads} onNavigate={(id) => router.push(`/leads/${id}`)} />
+          <FollowUpSection leads={followUpLeads} onNavigate={(id) => router.push(`/leads/${id}`)} />
 
           {/* Conversion rate */}
           <Card className="mb-7">

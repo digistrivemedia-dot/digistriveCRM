@@ -19,13 +19,18 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit')) || 50;
     const skip = parseInt(searchParams.get('skip')) || 0;
+    const status = searchParams.get('status');
 
     // Get leads assigned to this user (or all leads for admin)
     let query = {};
     if (user.role !== 'admin') {
       query.assignedTo = new mongoose.Types.ObjectId(user.userId);
     }
-    
+
+    if (status) {
+      query.status = status;
+    }
+
     const leads = await Lead.find(query)
       .populate('source', 'name')
       .sort({ updatedAt: -1 })
